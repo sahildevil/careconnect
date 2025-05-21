@@ -1,7 +1,8 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import Homescreen from '../screens/Homescreen';
-
+import Login from '../screens/auth/Login';
+import SignUp from '../screens/auth/SignUp';
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
