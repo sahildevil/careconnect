@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {authService} from '../../services/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -30,11 +31,12 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // API call
-      setTimeout(() => {
-        setLoading(false);
-        navigation.navigate('Home');
-      }, 1500);
+      const response = await authService.login(email, password);
+      setLoading(false);
+      // Store the user session in AsyncStorage or Context/Redux
+      // For example:
+      // await AsyncStorage.setItem('userToken', response.session.access_token);
+      navigation.navigate('Home');
     } catch (error) {
       setLoading(false);
       Alert.alert('Login Failed', error.message || 'Something went wrong');
