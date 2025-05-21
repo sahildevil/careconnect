@@ -20,7 +20,7 @@ const AppNavigator = () => {
       <Stack.Screen 
         name="Home" 
         component={Homescreen} 
-        options={{ title: "CareConnect" }}
+        options={{ headerShown: false}}
       />
     </Stack.Navigator>
   );
