@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  TextInput,
   ActivityIndicator,
   Alert,
   SafeAreaView,
@@ -14,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigation} from '@react-navigation/native';
+import {CustomTextField, CustomButton, HeaderComponent} from '../../components';
 
 const PatientProfileScreen = () => {
   const {user, logout} = useAuth();
@@ -68,10 +68,10 @@ const PatientProfileScreen = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
         <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => setIsEditing(!isEditing)}>
+          onPress={() => setIsEditing(!isEditing)}
+          style={styles.editButton}>
           <Icon
-            name={isEditing ? 'close' : 'create-outline'}
+            name={isEditing ? 'close-outline' : 'create-outline'}
             size={24}
             color="#fff"
           />
@@ -79,27 +79,31 @@ const PatientProfileScreen = () => {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{name.charAt(0)}</Text>
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.profileImageContainer}>
+              <View style={styles.profileImage}>
+                <Text style={styles.profileInitial}>
+                  {name ? name[0].toUpperCase() : 'U'}
+                </Text>
+              </View>
+              {isEditing && (
+                <TouchableOpacity style={styles.changePhotoButton}>
+                  <Text style={styles.changePhotoText}>Change Photo</Text>
+                </TouchableOpacity>
+              )}
             </View>
-            {isEditing && (
-              <TouchableOpacity style={styles.changePhotoButton}>
-                <Text style={styles.changePhotoText}>Change Photo</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           <View style={styles.infoContainer}>
             <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Full Name</Text>
               {isEditing ? (
-                <TextInput
-                  style={styles.input}
+                <CustomTextField
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter your full name"
+                  style={styles.input}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{name}</Text>
@@ -114,12 +118,12 @@ const PatientProfileScreen = () => {
             <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Phone</Text>
               {isEditing ? (
-                <TextInput
-                  style={styles.input}
+                <CustomTextField
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="Enter your phone number"
                   keyboardType="phone-pad"
+                  style={styles.input}
                 />
               ) : (
                 <Text style={styles.fieldValue}>{phone || 'Not provided'}</Text>
@@ -129,12 +133,12 @@ const PatientProfileScreen = () => {
             <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Address</Text>
               {isEditing ? (
-                <TextInput
-                  style={[styles.input, styles.addressInput]}
+                <CustomTextField
                   value={address}
                   onChangeText={setAddress}
                   placeholder="Enter your address"
                   multiline
+                  style={styles.input}
                 />
               ) : (
                 <Text style={styles.fieldValue}>
@@ -145,16 +149,13 @@ const PatientProfileScreen = () => {
           </View>
 
           {isEditing && (
-            <TouchableOpacity
-              style={styles.saveButton}
+            <CustomButton
+              title="Save Changes"
               onPress={handleSaveProfile}
-              disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              disabled={loading}
+              style={styles.saveButton}
+            />
           )}
         </View>
 
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  profileSection: {
+  profileCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
     margin: 15,
@@ -230,11 +231,15 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  avatarContainer: {
+  profileHeader: {
     alignItems: 'center',
     marginBottom: 20,
   },
-  avatar: {
+  profileImageContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  avatarText: {
+  profileInitial: {
     color: '#fff',
     fontSize: 40,
     fontWeight: 'bold',

@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
+import {CustomButton} from '../../components';
 
 const DoctorHomeScreen = () => {
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -91,13 +92,14 @@ const DoctorHomeScreen = () => {
     );
 
     return (
-      <TouchableOpacity
-        style={styles.appointmentCard}
-        onPress={() =>
-          navigation.navigate('AppointmentDetail', {appointment: item})
-        }>
-        <View style={styles.appointmentHeader}>
-          <View style={styles.patientInfo}>
+      <View style={styles.appointmentCard}>
+        <View style={styles.patientInfo}>
+          <View style={styles.patientAvatar}>
+            <Text style={styles.avatarText}>
+              {item.patient?.name?.charAt(0) || 'P'}
+            </Text>
+          </View>
+          <View>
             <Text style={styles.patientName}>
               {item.patient?.name || 'Patient'}
             </Text>
@@ -116,29 +118,29 @@ const DoctorHomeScreen = () => {
             {item.reason || 'General checkup'}
           </Text>
           <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.startButton]}
+            <CustomButton
+              title="Start"
               onPress={() =>
                 navigation.navigate('VideoCall', {appointment: item})
-              }>
-              <Icon name="videocam" size={16} color="#fff" />
-              <Text style={styles.actionButtonText}>Start</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rescheduleButton]}
+              }
+              style={[styles.actionButton, styles.startButton]}
+              textStyle={styles.actionButtonText}
+              icon={<Icon name="videocam" size={16} color="#fff" />}
+            />
+
+            <CustomButton
+              title="Reschedule"
               onPress={() =>
                 navigation.navigate('RescheduleAppointment', {
-                  appointment: item,
+                  appointmentId: item.id,
                 })
-              }>
-              <Icon name="calendar-outline" size={16} color="#0CB69B" />
-              <Text style={[styles.actionButtonText, styles.rescheduleText]}>
-                Reschedule
-              </Text>
-            </TouchableOpacity>
+              }
+              style={[styles.actionButton, styles.rescheduleButton]}
+              textStyle={[styles.actionButtonText, styles.rescheduleText]}
+            />
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -361,6 +363,22 @@ const styles = StyleSheet.create({
   },
   patientInfo: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  patientAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E6F8F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0CB69B',
   },
   patientName: {
     fontSize: 16,

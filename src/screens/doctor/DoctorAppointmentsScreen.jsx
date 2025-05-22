@@ -12,6 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
+import {CustomButton, HeaderComponent} from '../../components';
 
 const DoctorAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
@@ -145,31 +146,34 @@ const DoctorAppointmentsScreen = () => {
         </View>
 
         <View style={styles.appointmentFooter}>
-          <TouchableOpacity
-            style={styles.detailsButton}
+          <CustomButton
+            title="View Details"
             onPress={() =>
               navigation.navigate('AppointmentDetail', {appointmentId: item.id})
-            }>
-            <Text style={styles.detailsText}>View Details</Text>
-          </TouchableOpacity>
+            }
+            style={styles.detailsButton}
+            textStyle={styles.detailsText}
+          />
 
           {activeTab === 'upcoming' && (
             <View style={styles.actionButtons}>
-              <TouchableOpacity
+              <CustomButton
+                title="Complete"
+                onPress={() => updateAppointmentStatus(item.id, 'completed')}
                 style={styles.completeButton}
-                onPress={() => updateAppointmentStatus(item.id, 'completed')}>
-                <Text style={styles.completeText}>Complete</Text>
-              </TouchableOpacity>
+                textStyle={styles.completeText}
+              />
 
-              <TouchableOpacity
-                style={styles.rescheduleButton}
+              <CustomButton
+                title="Reschedule"
                 onPress={() =>
                   navigation.navigate('RescheduleAppointment', {
                     appointmentId: item.id,
                   })
-                }>
-                <Text style={styles.rescheduleText}>Reschedule</Text>
-              </TouchableOpacity>
+                }
+                style={styles.rescheduleButton}
+                textStyle={styles.rescheduleText}
+              />
             </View>
           )}
         </View>
@@ -179,9 +183,11 @@ const DoctorAppointmentsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Appointments</Text>
-      </View>
+      <HeaderComponent
+        title="My Appointments"
+        showLogo={false}
+        style={styles.header}
+      />
 
       <View style={styles.tabsContainer}>
         <TouchableOpacity

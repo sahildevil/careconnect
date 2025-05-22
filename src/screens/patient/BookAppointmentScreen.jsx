@@ -7,13 +7,18 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {appointmentService} from '../../services/api';
-import {useAuth} from '../../context/AuthContext';
+import {
+  BackButton,
+  CustomButton,
+  CustomTextField,
+  HeaderComponent,
+} from '../../components';
 
 // Helper function to generate time slots
 const generateTimeSlots = (startHour = 9, endHour = 17) => {
@@ -151,11 +156,7 @@ const BookAppointmentScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        <BackButton color="#fff" />
         <Text style={styles.headerTitle}>Book Appointment</Text>
         <View style={{width: 40}} />
       </View>
@@ -253,14 +254,13 @@ const BookAppointmentScreen = () => {
         )}
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Reason for Visit</Text>
-          <TextInput
-            style={styles.reasonInput}
-            placeholder="Tell the doctor about your symptoms..."
+          <Text style={styles.sectionTitle}>Appointment Reason</Text>
+          <CustomTextField
             value={reason}
             onChangeText={setReason}
+            placeholder="Please specify your reason for consultation"
             multiline
-            textAlignVertical="top"
+            style={styles.reasonInput}
           />
         </View>
 
@@ -281,16 +281,17 @@ const BookAppointmentScreen = () => {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.bookButton}
+        <CustomButton
+          title="Book Now"
           onPress={handleBookAppointment}
-          disabled={loading || !selectedDate || !selectedTime}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.bookButtonText}>Confirm Booking</Text>
-          )}
-        </TouchableOpacity>
+          loading={loading}
+          disabled={!selectedDate || !selectedTime || loading}
+          style={[
+            styles.bookButton,
+            (!selectedDate || !selectedTime) && styles.disabledButton,
+          ]}
+          textStyle={styles.bookButtonText}
+        />
       </View>
     </SafeAreaView>
   );
@@ -497,6 +498,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
 

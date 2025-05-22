@@ -6,24 +6,25 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
+import {BackButton, CustomButton} from '../../components';
 
 const DoctorDetailScreen = () => {
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
+  const {doctorId} = route.params || {};
 
   useEffect(() => {
-    const {doctorId} = route.params;
     fetchDoctorDetails(doctorId);
-  }, [route.params]);
+  }, [doctorId]);
 
   const fetchDoctorDetails = async doctorId => {
     try {
@@ -32,9 +33,12 @@ const DoctorDetailScreen = () => {
 
       if (response.success) {
         setDoctor(response.doctor);
+      } else {
+        setError(true);
       }
     } catch (error) {
       console.error('Error fetching doctor details:', error);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -45,6 +49,22 @@ const DoctorDetailScreen = () => {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0CB69B" />
       </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Icon name="alert-circle-outline" size={60} color="#FF6B6B" />
+          <Text style={styles.errorText}>Failed to load doctor details</Text>
+          <CustomButton
+            title="Go Back"
+            onPress={() => navigation.goBack()}
+            style={{backgroundColor: '#0CB69B'}}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -77,11 +97,7 @@ const DoctorDetailScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        <BackButton color="#fff" />
         <Text style={styles.headerTitle}>Doctor Details</Text>
         <TouchableOpacity style={styles.favoriteButton}>
           <Icon name="heart-outline" size={24} color="#fff" />
@@ -191,11 +207,12 @@ const DoctorDetailScreen = () => {
             </Text>
           </View>
 
-          <TouchableOpacity
+          <CustomButton
+            title="Book Appointment"
+            onPress={() => navigation.navigate('BookAppointment', {doctor})}
             style={styles.bookAppointmentButton}
-            onPress={() => navigation.navigate('BookAppointment', {doctor})}>
-            <Text style={styles.bookAppointmentText}>Book Appointment</Text>
-          </TouchableOpacity>
+            textStyle={styles.bookAppointmentText}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
