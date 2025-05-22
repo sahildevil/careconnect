@@ -23,16 +23,25 @@ export const AuthProvider = ({children}) => {
 
   const loadUserFromStorage = async () => {
     try {
+      console.log('Loading user data from storage...');
       const userData = await AsyncStorage.getItem('user');
-      const tokenData = await AsyncStorage.getItem('token');
       const userTypeData = await AsyncStorage.getItem('userType');
+      const tokenData = await AsyncStorage.getItem('token');
 
-      if (userData && tokenData) {
-        setUser(JSON.parse(userData));
+      console.log('User data from storage:', userData ? 'exists' : 'missing');
+      console.log('User type from storage:', userTypeData);
+      console.log('Token from storage:', tokenData ? 'exists' : 'missing');
+
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
+        setUser(parsedUserData);
         setUserType(userTypeData);
+        console.log('User loaded successfully:', parsedUserData.id);
+      } else {
+        console.log('No saved user data found');
       }
     } catch (error) {
-      console.error('Error loading user data', error);
+      console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
     }
@@ -43,7 +52,6 @@ export const AuthProvider = ({children}) => {
     if (userData?.user_type === 'doctor') {
       try {
         // Check if the profile data exists and if onboarding_complete is false
-        // This handles both cases: no profile data or profile with onboarding_complete=false
         if (
           !userData.profile ||
           userData.profile.onboarding_complete === false
@@ -67,12 +75,23 @@ export const AuthProvider = ({children}) => {
 
       if (response.success) {
         const userData = response.user;
+        
+        // Store the token securely
+        if (response.token) {
+          await AsyncStorage.setItem('token', response.token);
+        }
+        
+        // Save user data to AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        await AsyncStorage.setItem('userType', userData.user_type);
+        
+        console.log('User data saved to storage after login:', userData.id);
 
         // Check if doctor needs onboarding before setting user state
         if (userData.user_type === 'doctor') {
           const needsOnboarding = await checkDoctorOnboarding(userData);
 
-          // Still set user data in state, but return special flag for navigation
+          // Set user data in state
           setUser(userData);
           setUserType(userData.user_type);
 
@@ -128,6 +147,8 @@ export const AuthProvider = ({children}) => {
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('userType');
+      
+      console.log('User data cleared from storage after logout');
 
       setUser(null);
       setUserType(null);
@@ -161,6 +182,7 @@ export const AuthProvider = ({children}) => {
   const updateUser = userData => {
     setUser(userData);
     AsyncStorage.setItem('user', JSON.stringify(userData));
+    console.log('Updated user data in storage:', userData.id);
   };
 
   const value = {

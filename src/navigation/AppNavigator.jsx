@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
 import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {useAuth} from '../context/AuthContext';
@@ -107,6 +107,16 @@ const DoctorNavigator = () => {
 const AppNavigator = () => {
   const {isAuthenticated, loading, userType, user} = useAuth();
 
+  // Add console log for debugging
+  useEffect(() => {
+    console.log('AppNavigator - Auth state:', {
+      isAuthenticated,
+      userType,
+      userId: user?.id,
+      loading,
+    });
+  }, [isAuthenticated, userType, user, loading]);
+
   // Add a check for doctor needing onboarding
   const needsDoctorOnboarding = React.useMemo(() => {
     if (isAuthenticated && userType === 'doctor' && user) {
@@ -132,6 +142,8 @@ const AppNavigator = () => {
       initialRoute = 'PatientFlow';
     }
   }
+
+  console.log('Initial route selected:', initialRoute);
 
   return (
     <Stack.Navigator

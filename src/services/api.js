@@ -12,12 +12,21 @@ const api = axios.create({
   },
 });
 
+// Update the request interceptor:
+
 // Add request interceptor to add auth token
 api.interceptors.request.use(
   async config => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token && token.length > 10) { // Basic validation that it's a real token
+        console.log('API: Adding auth token to request');
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.log('API: No valid token found');
+      }
+    } catch (error) {
+      console.error('API: Error getting token', error);
     }
     return config;
   },
@@ -43,6 +52,10 @@ export const authService = {
         password,
         userType,
       });
+
+          if (response.data.success && response.data.token) {
+      await AsyncStorage.setItem('token', response.data.token);
+    }
       return response.data;
     } catch (error) {
       throw error.response
