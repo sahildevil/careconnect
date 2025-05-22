@@ -119,8 +119,11 @@ const DoctorHomeScreen = () => {
           app => app.status === 'canceled',
         ).length;
 
+        // ADD THIS LINE - calculate pendingCount from pendingAppts
+        const pendingCount = pendingAppts.length;
+
         console.log(
-          `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming`,
+          `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming, ${pendingCount} pending`,
         );
         
         // Log today's appointments for debugging
@@ -138,7 +141,7 @@ const DoctorHomeScreen = () => {
           upcoming: upcomingAppts.length,
           completed: completedCount,
           cancelled: cancelledCount,
-          pending: pendingCount, // Add this new stat
+          pending: pendingCount, // Now this is defined
         });
       } else {
         console.error('Invalid response format or no appointments found');

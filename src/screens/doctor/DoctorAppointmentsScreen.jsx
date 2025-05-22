@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -98,38 +99,50 @@ const DoctorAppointmentsScreen = () => {
     return appointments;
   };
 
-  // Add function to handle approving/rejecting appointments
-  const handleAppointmentApproval = async (
-    appointmentId,
-    approved,
-    reason = '',
-  ) => {
+  // Replace your existing handleAppointmentApproval function with this improved version:
+  const handleAppointmentApproval = async (appointmentId, approved, reason = '') => {
     try {
       setLoading(true);
+      
+      console.log(`Attempting to ${approved ? 'approve' : 'reject'} appointment ${appointmentId}`);
+      
       const response = await appointmentService.approveAppointment(
         appointmentId,
         approved,
-        approved ? null : reason, // If rejected, include the reason
+        approved ? null : reason
       );
 
       if (response.success) {
-        // Update the appointment status locally
-        setAppointments(
-          appointments.map(app => {
-            if (app.id === appointmentId) {
-              return {
-                ...app,
-                status: approved ? 'confirmed' : 'canceled',
-                notes: approved ? app.notes : reason,
-              };
-            }
-            return app;
-          }),
-        );
-        Alert.alert(
-          'Success',
-          approved ? 'Appointment confirmed' : 'Appointment rejected',
-        );
+        // Find the appointment that was updated
+        const updatedAppointment = appointments.find(app => app.id === appointmentId);
+        
+        if (updatedAppointment) {
+          // Create updated version of the appointment
+          const updatedAppointmentData = {
+            ...updatedAppointment,
+            status: approved ? 'confirmed' : 'canceled',
+            notes: approved ? updatedAppointment.notes : reason
+          };
+          
+          // Update the appointments list with the new status
+          setAppointments(appointments.map(app => 
+            app.id === appointmentId ? updatedAppointmentData : app
+          ));
+          
+          // Show success message
+          Alert.alert(
+            'Success',
+            approved 
+              ? 'Appointment has been confirmed' 
+              : 'Appointment has been rejected'
+          );
+          
+          // Force tab change to see the appointment in its new section
+          if (approved && activeTab === 'pending') {
+            // Optional: automatically switch to confirmed tab to see the appointment
+            setActiveTab('upcoming');
+          }
+        }
       } else {
         Alert.alert('Error', 'Failed to update appointment status');
       }
@@ -143,21 +156,48 @@ const DoctorAppointmentsScreen = () => {
 
   // Add this function to prompt for rejection reason
   const promptRejectReason = appointmentId => {
-    Alert.prompt(
-      'Reject Appointment',
-      'Please provide a reason for rejection:',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Submit',
-          onPress: reason =>
-            handleAppointmentApproval(appointmentId, false, reason),
-        },
-      ],
-    );
+    // Alert.prompt is iOS-only, let's handle it differently for cross-platform
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Reject Appointment',
+        'Please provide a reason for rejection:',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Submit',
+            onPress: reason =>
+              handleAppointmentApproval(appointmentId, false, reason || 'Rejected by doctor'),
+          },
+        ],
+      );
+    } else {
+      // For Android, we can use a simple alert with predefined reasons
+      Alert.alert(
+        'Reject Appointment',
+        'Please select a reason for rejection:',
+        [
+          {
+            text: 'Doctor unavailable',
+            onPress: () => handleAppointmentApproval(appointmentId, false, 'Doctor unavailable'),
+          },
+          {
+            text: 'Schedule conflict',
+            onPress: () => handleAppointmentApproval(appointmentId, false, 'Schedule conflict'),
+          },
+          {
+            text: 'Need more information',
+            onPress: () => handleAppointmentApproval(appointmentId, false, 'Need more information'),
+          },
+          {
+            text: 'Other/Cancel',
+            style: 'cancel',
+          },
+        ],
+      );
+    }
   };
 
   const renderAppointmentItem = ({item}) => {
@@ -217,24 +257,26 @@ const DoctorAppointmentsScreen = () => {
               navigation.navigate('AppointmentDetail', {appointmentId: item.id})
             }
             style={styles.detailsButton}
-            textStyle={styles.detailsText}
+            textStyle={styles.detailsText} // Keep this existing style
           />
 
           {/* Show approve/reject buttons only for pending appointments */}
           {item.status === 'pending' && (
             <View style={styles.approvalButtons}>
               <CustomButton
-                title="Approve"
+                title={loading ? 'Processing...' : 'Approve'}
                 onPress={() => handleAppointmentApproval(item.id, true)}
-                style={styles.approveButton}
+                style={[styles.approveButton, loading && styles.disabledButton]}
                 textStyle={styles.approveText}
+                disabled={loading}
               />
 
               <CustomButton
-                title="Reject"
+                title={loading ? 'Processing...' : 'Reject'}
                 onPress={() => promptRejectReason(item.id)}
-                style={styles.rejectButton}
+                style={[styles.rejectButton, loading && styles.disabledButton]}
                 textStyle={styles.rejectText}
+                disabled={loading}
               />
             </View>
           )}
@@ -272,6 +314,7 @@ const DoctorAppointmentsScreen = () => {
         title="My Appointments"
         showLogo={false}
         style={styles.header}
+        titleStyle={styles.headerTitleText} // Add this prop
       />
 
       <View style={styles.tabsContainer}>
@@ -354,8 +397,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
-  headerTitle: {
-    color: '#fff',
+  headerTitleText: {
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -488,6 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#0CB69B',
+    backgroundColor: '#E6F8F6', // Light green background
   },
   detailsText: {
     color: '#0CB69B',
@@ -555,6 +599,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  disabledButton: {
+  opacity: 0.6,
+},
 });
 
 export default DoctorAppointmentsScreen;

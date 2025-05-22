@@ -414,6 +414,23 @@ export const appointmentService = {
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
+
+  approveAppointment: async (appointmentId, approved, rejectionReason = null) => {
+    try {
+      console.log(`${approved ? 'Approving' : 'Rejecting'} appointment ${appointmentId}`);
+      
+      const response = await api.put(`/appointments/${appointmentId}/approve`, {
+        approved,
+        notes: rejectionReason
+      });
+      
+      console.log('Approval response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error approving/rejecting appointment:', error);
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
 };
 
 export default api;

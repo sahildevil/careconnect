@@ -31,6 +31,7 @@ import DoctorOnboardingScreen from '../screens/doctor/DoctorOnboardingScreen';
 
 //shared screens
 import LandingScreen from '../screens/LandingScreen';
+import NotificationsScreen from '../screens/common/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
@@ -158,6 +159,13 @@ const AppNavigator = () => {
       <Stack.Screen
         name="DoctorOnboarding"
         component={DoctorOnboardingScreen}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          headerShown: false,
+        }}
       />
     </Stack.Navigator>
   );
