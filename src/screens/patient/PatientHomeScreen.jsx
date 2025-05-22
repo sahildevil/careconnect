@@ -263,10 +263,9 @@ const PatientHomeScreen = () => {
   );
 
   return (
-    <View style={[styles.container, {paddingTop: insets.top}]}>
+    <View style={[styles.container]}>
       <StatusBar barStyle="dark-content" backgroundColor="#0CB69B" />
-
-      <View style={styles.headerBackground}>
+      <View style={[styles.headerBackground, {paddingTop: insets.top}]}>
         <SafeAreaView>
           <View style={styles.header}>
             <View style={styles.userInfo}>
@@ -486,7 +485,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginTop: 25,
-    marginBottom: 15,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
