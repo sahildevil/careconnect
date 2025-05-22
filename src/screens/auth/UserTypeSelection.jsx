@@ -7,13 +7,19 @@ import {
   SafeAreaView,
   Image,
   StatusBar,
+  Dimensions,
 } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const UserTypeSelection = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-
+      
+      {/* Green curved shape at the top-right corner */}
+      <View style={styles.topRightShape} />
+      
       <View style={styles.headerContainer}>
         <Text style={styles.logoText}>CareConnect</Text>
         <Text style={styles.welcomeText}>Welcome to CareConnect</Text>
@@ -27,11 +33,11 @@ const UserTypeSelection = ({navigation}) => {
           style={styles.card}
           onPress={() => navigation.navigate('Login', {userType: 'patient'})}>
           <View style={styles.cardIconContainer}>
-            {/* <Image
-              source={require('../../assets/patient-icon.png')}
+            <Image
+              source={require('../../assets/images/Patient.jpg')}
               style={styles.cardIcon}
               resizeMode="contain"
-            /> */}
+            />
           </View>
           <Text style={styles.cardTitle}>I'm a Patient</Text>
           <Text style={styles.cardDescription}>
@@ -43,11 +49,11 @@ const UserTypeSelection = ({navigation}) => {
           style={styles.card}
           onPress={() => navigation.navigate('Login', {userType: 'doctor'})}>
           <View style={styles.cardIconContainer}>
-            {/* <Image
-              source={require('../../assets/doctor-icon.png')}
-              style={styles.cardIcon}
+            <Image
+              source={require('../../assets/images/Doctor_icon.png')}
+              style={styles.cardIcon2}
               resizeMode="contain"
-            /> */}
+            />
           </View>
           <Text style={styles.cardTitle}>I'm a Doctor</Text>
           <Text style={styles.cardDescription}>
@@ -71,11 +77,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
     padding: 20,
+    position: 'relative', // Important for positioning the curved shape
+  },
+  // Green curved shape styling
+  topRightShape: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#5cedd7',//#0CB69B
+    zIndex: 0,
   },
   headerContainer: {
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 60,
+    zIndex: 1,
   },
   logoText: {
     fontSize: 32,
@@ -97,6 +116,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     marginBottom: 40,
+    zIndex: 1,
   },
   card: {
     backgroundColor: '#f5f5f5',
@@ -120,8 +140,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   cardIcon: {
-    width: 50,
-    height: 50,
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+  },
+  cardIcon2: {
+    width: 74,
+    height: 74,
+    borderRadius: 50,
   },
   cardTitle: {
     fontSize: 18,
@@ -139,6 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 'auto',
     marginBottom: 20,
+    zIndex: 1,
   },
   helpText: {
     fontSize: 14,

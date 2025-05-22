@@ -29,6 +29,9 @@ import DoctorTabNavigator from './DoctorTabNavigator';
 import AppointmentDetailScreen from '../screens/shared/AppointmentDetailScreen';
 import DoctorOnboardingScreen from '../screens/doctor/DoctorOnboardingScreen';
 
+//shared screens
+import LandingScreen from '../screens/LandingScreen';
+
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
 const PatientStack = createStackNavigator();
@@ -38,10 +41,11 @@ const DoctorStack = createStackNavigator();
 const AuthNavigator = () => {
   return (
     <AuthStack.Navigator
-      initialRouteName="UserTypeSelection"
+      initialRouteName="Landing"
       screenOptions={{
         headerShown: false,
       }}>
+      <AuthStack.Screen name="Landing" component={LandingScreen} />
       <AuthStack.Screen
         name="UserTypeSelection"
         component={UserTypeSelection}
