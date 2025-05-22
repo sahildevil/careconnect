@@ -69,13 +69,18 @@ export const authService = {
 
   updateUserLocation: async (userId, location) => {
     try {
-      const response = await api.post('/auth/update-location', {
-        userId,
+      // Make sure we're sending the userId with the correct parameter name
+      const locationData = {
+        userId: userId, // This needs to match what the server expects
         latitude: location.latitude,
         longitude: location.longitude,
-      });
+        last_location_update: location.last_location_update || new Date().toISOString(),
+      };
+
+      const response = await api.post('/auth/update-location', locationData);
       return response.data;
     } catch (error) {
+      console.error('API Error updating location:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
