@@ -3,19 +3,22 @@ import {
   StyleSheet,
   Text,
   View,
-  TextInput,
-  TouchableOpacity,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
+  TouchableOpacity,
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import {Picker} from '@react-native-picker/picker';
 import {authService} from '../../services/api';
+import {
+  CustomTextField,
+  CustomButton,
+  CustomPicker,
+  HeaderComponent,
+  BackButton,
+} from '../../components';
 
 const specialties = [
   'Cardiology',
@@ -101,97 +104,84 @@ const DoctorSignUp = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="#008080" />
-          </TouchableOpacity>
+          <BackButton />
 
-          <View style={styles.headerContainer}>
-            <Text style={styles.logoText}>CareConnect</Text>
-            <Text style={styles.headerText}>Doctor Registration</Text>
-            <Text style={styles.subHeaderText}>
-              Join our healthcare network
-            </Text>
-          </View>
+          <HeaderComponent
+            title="Doctor Registration"
+            subtitle="Join our healthcare network"
+          />
 
           <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name *"
+            <CustomTextField
+              placeholder="Full Name"
               value={name}
               onChangeText={setName}
+              required
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Email *"
+
+            <CustomTextField
+              placeholder="Email"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              required
             />
-            <TextInput
-              style={styles.input}
+
+            <CustomTextField
               placeholder="Phone Number"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
 
-            <View style={styles.pickerContainer}>
-              <Text style={styles.pickerLabel}>Specialty *</Text>
-              <View style={styles.picker}>
-                <Picker
-                  selectedValue={specialty}
-                  onValueChange={itemValue => setSpecialty(itemValue)}>
-                  {specialties.map((item, index) => (
-                    <Picker.Item key={index} label={item} value={item} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
+            <CustomPicker
+              label="Specialty"
+              selectedValue={specialty}
+              onValueChange={itemValue => setSpecialty(itemValue)}
+              items={specialties}
+              required
+            />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Qualifications *"
+            <CustomTextField
+              placeholder="Qualifications"
               value={qualification}
               onChangeText={setQualification}
               multiline
+              required
             />
-            <TextInput
-              style={styles.input}
+
+            <CustomTextField
               placeholder="Years of Experience"
               value={experience}
               onChangeText={setExperience}
               keyboardType="number-pad"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password *"
+
+            <CustomTextField
+              placeholder="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              required
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password *"
+
+            <CustomTextField
+              placeholder="Confirm Password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
+              required
             />
 
             <Text style={styles.noteText}>* Required fields</Text>
 
-            <TouchableOpacity
-              style={styles.signupButton}
+            <CustomButton
+              title="Register"
               onPress={handleSignUp}
-              disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.signupButtonText}>Register</Text>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              disabled={loading}
+            />
 
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
@@ -245,44 +235,11 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
   },
-  input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  pickerContainer: {
-    marginBottom: 15,
-  },
-  pickerLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  picker: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-  },
   noteText: {
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
     marginBottom: 20,
-  },
-  signupButton: {
-    backgroundColor: '#008080',
-    borderRadius: 10,
-    padding: 15,
-    alignItems: 'center',
-    marginBottom: 20,
-    height: 50,
-    justifyContent: 'center',
-  },
-  signupButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   loginContainer: {
     flexDirection: 'row',

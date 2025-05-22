@@ -107,8 +107,10 @@ const AppNavigator = () => {
   }
 
   // Determine the initial route based on authentication state
-  const initialRoute = isAuthenticated 
-    ? (userType === 'doctor' ? 'DoctorFlow' : 'PatientFlow') 
+  const initialRoute = isAuthenticated
+    ? userType === 'doctor'
+      ? 'DoctorFlow'
+      : 'PatientFlow'
     : 'Auth';
 
   return (
