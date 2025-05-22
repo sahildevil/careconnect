@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,17 +10,24 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Image,
   Alert,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
-import {authService} from '../../services/api';
+import {useAuth} from '../../context/AuthContext';
 
-const Login = () => {
+const Login = ({navigation, route}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
+  const [userType, setUserType] = useState('patient');
+
+  const {login, error} = useAuth();
+
+  useEffect(() => {
+    // Get user type from route params if available
+    if (route.params?.userType) {
+      setUserType(route.params.userType);
+    }
+  }, [route.params]);
 
   const handleLogin = async () => {
     // Validate inputs
@@ -31,15 +38,23 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const response = await authService.login(email, password);
-      setLoading(false);
-      // Store the user session in AsyncStorage or Context/Redux
-      // For example:
-      // await AsyncStorage.setItem('userToken', response.session.access_token);
-      navigation.navigate('Home');
+      const success = await login(email, password, userType);
+
+      if (!success) {
+        Alert.alert('Login Failed', 'Invalid email or password');
+      }
     } catch (error) {
-      setLoading(false);
       Alert.alert('Login Failed', error.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateToSignUp = () => {
+    if (userType === 'doctor') {
+      navigation.navigate('DoctorSignUp');
+    } else {
+      navigation.navigate('SignUp');
     }
   };
 
@@ -54,7 +69,9 @@ const Login = () => {
           </View>
 
           <View style={styles.formContainer}>
-            <Text style={styles.welcomeText}>Welcome Back</Text>
+            <Text style={styles.welcomeText}>
+              {userType === 'doctor' ? 'Doctor Login' : 'Patient Login'}
+            </Text>
             <Text style={styles.subtitleText}>Sign in to continue</Text>
 
             <TextInput
@@ -73,7 +90,9 @@ const Login = () => {
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity
+              style={styles.forgotPassword}
+              onPress={() => navigation.navigate('ForgotPassword')}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
@@ -88,9 +107,18 @@ const Login = () => {
               )}
             </TouchableOpacity>
 
+            <View style={styles.switchUserTypeContainer}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('UserTypeSelection')}>
+                <Text style={styles.switchUserTypeText}>
+                  Switch to {userType === 'doctor' ? 'Patient' : 'Doctor'} login
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.signupContainer}>
               <Text style={styles.signupText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+              <TouchableOpacity onPress={navigateToSignUp}>
                 <Text style={styles.signupButtonText}>Sign Up</Text>
               </TouchableOpacity>
             </View>
@@ -163,6 +191,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  switchUserTypeContainer: {
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  switchUserTypeText: {
+    color: '#008080',
+    fontSize: 14,
+    fontWeight: '500',
   },
   signupContainer: {
     flexDirection: 'row',

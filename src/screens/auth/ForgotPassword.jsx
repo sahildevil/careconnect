@@ -13,53 +13,36 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {authService} from '../../services/api';
 
-const SignUp = () => {
-  const [name, setName] = useState('');
+const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
-  const handleSignUp = async () => {
-    // Validate inputs
-    if (
-      !name.trim() ||
-      !email.trim() ||
-      !password.trim() ||
-      !confirmPassword.trim()
-    ) {
-      Alert.alert('Error', 'Please fill all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
       return;
     }
 
     setLoading(true);
     try {
-      // Create a proper userData object instead of passing separate parameters
-      const userData = {
-        name: name.trim(),
-        email: email.trim(),
-        password: password,
-      };
+      const response = await authService.resetPassword(email);
 
-      const response = await authService.register(userData, 'patient');
-      setLoading(false);
-      Alert.alert('Success', 'Account created successfully!', [
-        {text: 'OK', onPress: () => navigation.navigate('Login')},
-      ]);
-    } catch (error) {
-      setLoading(false);
       Alert.alert(
-        'Registration Failed',
-        error.message || 'Something went wrong',
+        'Password Reset Link Sent',
+        'Please check your email for instructions to reset your password.',
+        [{text: 'OK', onPress: () => navigation.navigate('Login')}],
       );
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to send reset link. Please try again.',
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,21 +52,21 @@ const SignUp = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#008080" />
+          </TouchableOpacity>
+
           <View style={styles.headerContainer}>
             <Text style={styles.logoText}>CareConnect</Text>
-            <Text style={styles.headerText}>Create Account</Text>
+            <Text style={styles.headerText}>Forgot Password</Text>
             <Text style={styles.subHeaderText}>
-              Join our healthcare community
+              Enter your email to receive password reset instructions
             </Text>
           </View>
 
           <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              value={name}
-              onChangeText={setName}
-            />
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -92,34 +75,20 @@ const SignUp = () => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
 
             <TouchableOpacity
-              style={styles.signupButton}
-              onPress={handleSignUp}
+              style={styles.resetButton}
+              onPress={handlePasswordReset}
               disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.signupButtonText}>Sign Up</Text>
+                <Text style={styles.resetButtonText}>Send Reset Link</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
+              <Text style={styles.loginText}>Remember your password? </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                 <Text style={styles.loginButtonText}>Login</Text>
               </TouchableOpacity>
@@ -140,10 +109,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
   },
+  backButton: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
   headerContainer: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
+    marginBottom: 40,
   },
   logoText: {
     fontSize: 28,
@@ -155,11 +127,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subHeaderText: {
     fontSize: 16,
     color: '#666',
+    textAlign: 'center',
   },
   formContainer: {
     width: '100%',
@@ -172,7 +145,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
   },
-  signupButton: {
+  resetButton: {
     backgroundColor: '#008080',
     borderRadius: 10,
     padding: 15,
@@ -181,7 +154,7 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
   },
-  signupButtonText: {
+  resetButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
@@ -202,4 +175,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SignUp;
+export default ForgotPassword;

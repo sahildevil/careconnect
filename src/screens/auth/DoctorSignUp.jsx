@@ -13,13 +13,32 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {Picker} from '@react-native-picker/picker';
 import {authService} from '../../services/api';
 
-const SignUp = () => {
+const specialties = [
+  'Cardiology',
+  'Dermatology',
+  'Neurology',
+  'Orthopedics',
+  'Pediatrics',
+  'Psychiatry',
+  'Gynecology',
+  'Ophthalmology',
+  'General Medicine',
+  'Other',
+];
+
+const DoctorSignUp = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [specialty, setSpecialty] = useState(specialties[0]);
+  const [qualification, setQualification] = useState('');
+  const [experience, setExperience] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
@@ -29,9 +48,11 @@ const SignUp = () => {
       !name.trim() ||
       !email.trim() ||
       !password.trim() ||
-      !confirmPassword.trim()
+      !confirmPassword.trim() ||
+      !specialty.trim() ||
+      !qualification.trim()
     ) {
-      Alert.alert('Error', 'Please fill all fields');
+      Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
@@ -42,18 +63,29 @@ const SignUp = () => {
 
     setLoading(true);
     try {
-      // Create a proper userData object instead of passing separate parameters
       const userData = {
-        name: name.trim(),
-        email: email.trim(),
-        password: password,
+        name,
+        email,
+        password,
+        phone_number: phone,
+        specialty,
+        qualification,
+        experience: experience ? parseInt(experience, 10) : 0,
       };
 
-      const response = await authService.register(userData, 'patient');
+      const response = await authService.register(userData, 'doctor');
       setLoading(false);
-      Alert.alert('Success', 'Account created successfully!', [
-        {text: 'OK', onPress: () => navigation.navigate('Login')},
-      ]);
+
+      Alert.alert(
+        'Registration Successful',
+        'Your account has been created and is pending approval. You will be notified when your account is approved.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Login', {userType: 'doctor'}),
+          },
+        ],
+      );
     } catch (error) {
       setLoading(false);
       Alert.alert(
@@ -69,24 +101,30 @@ const SignUp = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#008080" />
+          </TouchableOpacity>
+
           <View style={styles.headerContainer}>
             <Text style={styles.logoText}>CareConnect</Text>
-            <Text style={styles.headerText}>Create Account</Text>
+            <Text style={styles.headerText}>Doctor Registration</Text>
             <Text style={styles.subHeaderText}>
-              Join our healthcare community
+              Join our healthcare network
             </Text>
           </View>
 
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
+              placeholder="Full Name *"
               value={name}
               onChangeText={setName}
             />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Email *"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -94,18 +132,55 @@ const SignUp = () => {
             />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.pickerContainer}>
+              <Text style={styles.pickerLabel}>Specialty *</Text>
+              <View style={styles.picker}>
+                <Picker
+                  selectedValue={specialty}
+                  onValueChange={itemValue => setSpecialty(itemValue)}>
+                  {specialties.map((item, index) => (
+                    <Picker.Item key={index} label={item} value={item} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Qualifications *"
+              value={qualification}
+              onChangeText={setQualification}
+              multiline
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Years of Experience"
+              value={experience}
+              onChangeText={setExperience}
+              keyboardType="number-pad"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password *"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
             />
             <TextInput
               style={styles.input}
-              placeholder="Confirm Password"
+              placeholder="Confirm Password *"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
             />
+
+            <Text style={styles.noteText}>* Required fields</Text>
 
             <TouchableOpacity
               style={styles.signupButton}
@@ -114,13 +189,16 @@ const SignUp = () => {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.signupButtonText}>Sign Up</Text>
+                <Text style={styles.signupButtonText}>Register</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Login', {userType: 'doctor'})
+                }>
                 <Text style={styles.loginButtonText}>Login</Text>
               </TouchableOpacity>
             </View>
@@ -140,9 +218,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
   },
+  backButton: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
   headerContainer: {
     alignItems: 'center',
-    marginTop: 40,
     marginBottom: 30,
   },
   logoText: {
@@ -163,7 +244,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    padding: 16,
   },
   input: {
     backgroundColor: '#F5F5F5',
@@ -171,6 +251,24 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
+  },
+  pickerContainer: {
+    marginBottom: 15,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  picker: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginBottom: 20,
   },
   signupButton: {
     backgroundColor: '#008080',
@@ -189,7 +287,8 @@ const styles = StyleSheet.create({
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 10,
+    marginBottom: 30,
   },
   loginText: {
     color: '#666',
@@ -202,4 +301,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SignUp;
+export default DoctorSignUp;
