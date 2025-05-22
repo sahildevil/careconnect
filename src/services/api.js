@@ -6,6 +6,7 @@ const API_URL = 'http://192.168.1.5:3000/api';
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 15000, // Increased timeout
   headers: {
     'Content-Type': 'application/json',
   },
@@ -23,29 +24,70 @@ api.interceptors.request.use(
   error => Promise.reject(error),
 );
 
+// Add API interceptors for better error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Log the error for debugging
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  },
+);
+
 // Auth services
 export const authService = {
   login: async (email, password, userType) => {
     try {
       const response = await api.post('/auth/login', {
-        email,
+        email: email.toLowerCase(), // Always lowercase email for consistency
         password,
         userType,
       });
       return response.data;
     } catch (error) {
-      throw error.response ? error.response.data : new Error('Network error');
+      throw error.response
+        ? error.response.data
+        : {success: false, message: 'Network error'};
     }
   },
 
   register: async (userData, userType) => {
     try {
+      // Clean and sanitize data
+      const sanitizedData = Object.fromEntries(
+        Object.entries(userData).map(([key, value]) =>
+          typeof value === 'string' ? [key, value.trim()] : [key, value],
+        ),
+      );
+
+      // Convert email to lowercase
+      if (sanitizedData.email) {
+        sanitizedData.email = sanitizedData.email.toLowerCase();
+      }
+
       const endpoint =
         userType === 'doctor' ? '/auth/doctor-signup' : '/auth/signup';
-      const response = await api.post(endpoint, userData);
+
+      console.log('Sending registration data:', endpoint, sanitizedData);
+      const response = await api.post(endpoint, sanitizedData);
       return response.data;
     } catch (error) {
-      throw error.response ? error.response.data : new Error('Network error');
+      console.error('Registration error:', error);
+
+      if (error.response && error.response.data) {
+        throw error.response.data;
+      } else if (error.message && error.message.includes('Network Error')) {
+        throw {
+          success: false,
+          message:
+            'Cannot connect to server. Please check your internet connection.',
+        };
+      } else {
+        throw {
+          success: false,
+          message: error.message || 'Unknown error occurred',
+        };
+      }
     }
   },
 
@@ -54,16 +96,22 @@ export const authService = {
       const response = await api.post('/auth/logout');
       return response.data;
     } catch (error) {
-      throw error.response ? error.response.data : new Error('Network error');
+      throw error.response
+        ? error.response.data
+        : {success: false, message: 'Network error'};
     }
   },
 
   resetPassword: async email => {
     try {
-      const response = await api.post('/auth/reset-password', {email});
+      const response = await api.post('/auth/reset-password', {
+        email: email.toLowerCase(),
+      });
       return response.data;
     } catch (error) {
-      throw error.response ? error.response.data : new Error('Network error');
+      throw error.response
+        ? error.response.data
+        : {success: false, message: 'Network error'};
     }
   },
 

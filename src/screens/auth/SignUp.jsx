@@ -20,6 +20,7 @@ const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
@@ -29,7 +30,8 @@ const SignUp = () => {
       !name.trim() ||
       !email.trim() ||
       !password.trim() ||
-      !confirmPassword.trim()
+      !confirmPassword.trim() ||
+      !phone.trim()
     ) {
       Alert.alert('Error', 'Please fill all fields');
       return;
@@ -40,26 +42,52 @@ const SignUp = () => {
       return;
     }
 
-    setLoading(true);
     try {
-      // Create a proper userData object instead of passing separate parameters
+      setLoading(true);
       const userData = {
         name: name.trim(),
-        email: email.trim(),
-        password: password,
+        email: email.trim().toLowerCase(),
+        password,
+        phone_number: phone.trim(),
       };
 
+      console.log('Sending registration data:', JSON.stringify(userData));
       const response = await authService.register(userData, 'patient');
-      setLoading(false);
-      Alert.alert('Success', 'Account created successfully!', [
-        {text: 'OK', onPress: () => navigation.navigate('Login')},
-      ]);
+
+      if (response.success) {
+        Alert.alert(
+          'Registration Successful',
+          'Your account has been created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.navigate('Login', {userType: 'patient'}),
+            },
+          ],
+        );
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
     } catch (error) {
+      console.error('Registration error:', error);
+
+      let errorMessage = error.message || 'Registration failed';
+
+      if (
+        errorMessage.toLowerCase().includes('email') &&
+        (errorMessage.toLowerCase().includes('already') ||
+          errorMessage.toLowerCase().includes('exists'))
+      ) {
+        Alert.alert(
+          'Registration Failed',
+          'This email is already registered. Please use another email or login to your existing account.',
+        );
+      } else {
+        Alert.alert('Registration Failed', errorMessage);
+      }
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'Something went wrong',
-      );
     }
   };
 
@@ -105,6 +133,13 @@ const SignUp = () => {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
             />
 
             <TouchableOpacity

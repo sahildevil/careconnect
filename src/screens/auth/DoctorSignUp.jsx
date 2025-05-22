@@ -64,37 +64,54 @@ const DoctorSignUp = () => {
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
       const userData = {
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password,
-        phone_number: phone,
+        phone_number: phone.trim(),
         specialty,
-        qualification,
+        qualification: qualification.trim(),
         experience: experience ? parseInt(experience, 10) : 0,
       };
 
+      console.log('Sending registration data:', JSON.stringify(userData));
       const response = await authService.register(userData, 'doctor');
-      setLoading(false);
 
-      Alert.alert(
-        'Registration Successful',
-        'Your account has been created and is pending approval. You will be notified when your account is approved.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Login', {userType: 'doctor'}),
-          },
-        ],
-      );
+      if (response.success) {
+        Alert.alert(
+          'Registration Successful',
+          'Your account has been created and is pending approval. You will be notified when your account is approved.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login', {userType: 'doctor'}),
+            },
+          ],
+        );
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
     } catch (error) {
+      console.error('Registration error:', error);
+
+      let errorMessage = error.message || 'Registration failed';
+
+      if (
+        errorMessage.toLowerCase().includes('email') &&
+        (errorMessage.toLowerCase().includes('already') ||
+          errorMessage.toLowerCase().includes('exists'))
+      ) {
+        Alert.alert(
+          'Registration Failed',
+          'This email is already registered. Please use another email or login to your existing account.',
+        );
+      } else {
+        Alert.alert('Registration Failed', errorMessage);
+      }
+    } finally {
       setLoading(false);
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'Something went wrong',
-      );
     }
   };
 
