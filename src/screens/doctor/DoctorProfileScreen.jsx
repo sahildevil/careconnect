@@ -271,31 +271,31 @@ const DoctorProfileScreen = () => {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('DoctorSchedule')}>
-            <Icon name="calendar-outline" size={24} color="#008080" />
+            <Icon name="calendar-outline" size={24} color="#0CB69B" />
             <Text style={styles.menuItemText}>Manage Schedule</Text>
             <Icon name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
-            <Icon name="notifications-outline" size={24} color="#008080" />
+            <Icon name="notifications-outline" size={24} color="#0CB69B" />
             <Text style={styles.menuItemText}>Notifications</Text>
             <Icon name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
-            <Icon name="shield-checkmark-outline" size={24} color="#008080" />
+            <Icon name="shield-checkmark-outline" size={24} color="#0CB69B" />
             <Text style={styles.menuItemText}>Privacy & Security</Text>
             <Icon name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
-            <Icon name="help-circle-outline" size={24} color="#008080" />
+            <Icon name="help-circle-outline" size={24} color="#0CB69B" />
             <Text style={styles.menuItemText}>Help & Support</Text>
             <Icon name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
-            <Icon name="settings-outline" size={24} color="#008080" />
+            <Icon name="settings-outline" size={24} color="#0CB69B" />
             <Text style={styles.menuItemText}>Settings</Text>
             <Icon name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   changePhotoText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontSize: 16,
   },
   infoContainer: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   saveButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
     marginBottom: 20,
   },
   welcomeText: {
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 14,
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: 'bold',
     marginLeft: 5,
   },

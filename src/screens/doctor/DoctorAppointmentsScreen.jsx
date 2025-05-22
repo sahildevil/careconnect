@@ -221,7 +221,7 @@ const DoctorAppointmentsScreen = () => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#008080" />
+          <ActivityIndicator size="large" color="#0CB69B" />
         </View>
       ) : (
         <FlatList
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
@@ -276,14 +276,14 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#008080',
+    borderBottomColor: '#0CB69B',
   },
   tabText: {
     fontSize: 14,
     color: '#666',
   },
   activeTabText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: 'bold',
   },
   listContainer: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
   },
   patientDetails: {
     flex: 1,
@@ -385,10 +385,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#008080',
+    borderColor: '#0CB69B',
   },
   detailsText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     marginRight: 8,
   },
   completeText: {

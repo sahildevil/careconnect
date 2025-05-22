@@ -265,7 +265,7 @@ const BookAppointmentScreen = () => {
         </View>
 
         <View style={styles.noticeCard}>
-          <Icon name="information-circle-outline" size={20} color="#008080" />
+          <Icon name="information-circle-outline" size={20} color="#0CB69B" />
           <Text style={styles.noticeText}>
             You can cancel your appointment up to 4 hours before the scheduled
             time.
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
   },
   doctorDetails: {
     flex: 1,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   selectedDateItem: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
   },
   dayText: {
     fontSize: 14,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   selectedTimeSlot: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
   },
   timeSlotText: {
     fontSize: 14,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   bookButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

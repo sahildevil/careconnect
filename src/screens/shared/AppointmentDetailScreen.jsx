@@ -92,7 +92,7 @@ const AppointmentDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#008080" />
+        <ActivityIndicator size="large" color="#0CB69B" />
       </View>
     );
   }
@@ -177,7 +177,7 @@ const AppointmentDetailScreen = () => {
               <Icon
                 name="calendar-outline"
                 size={20}
-                color="#008080"
+                color="#0CB69B"
                 style={styles.icon}
               />
               <Text style={styles.dateText}>{formattedDate}</Text>
@@ -186,7 +186,7 @@ const AppointmentDetailScreen = () => {
               <Icon
                 name="time-outline"
                 size={20}
-                color="#008080"
+                color="#0CB69B"
                 style={styles.icon}
               />
               <Text style={styles.timeText}>{formattedTime}</Text>
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   goBackButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
   },
   personDetails: {
     flex: 1,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   videoCallButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -512,13 +512,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     marginRight: 10,
   },
   rescheduleButton: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#008080',
+    borderColor: '#0CB69B',
   },
   actionButtonText: {
     color: '#fff',
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   rescheduleButtonText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontSize: 14,
     fontWeight: '600',
   },

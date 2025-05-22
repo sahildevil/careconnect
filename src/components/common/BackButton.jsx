@@ -3,7 +3,7 @@ import {StyleSheet, TouchableOpacity} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 
-const BackButton = ({onPress, color = '#008080', style = {}}) => {
+const BackButton = ({onPress, color = '#0CB69B', style = {}}) => {
   const navigation = useNavigation();
 
   const handlePress = () => {

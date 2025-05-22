@@ -101,7 +101,7 @@ const AppNavigator = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#008080" />
+        <ActivityIndicator size="large" color="#0CB69B" />
       </View>
     );
   }

@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
     marginBottom: 10,
   },
   headerText: {

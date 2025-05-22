@@ -74,7 +74,7 @@ const PatientHomeScreen = () => {
         <Text style={styles.appointmentText}>
           {item.appointment_type || 'Consultation'}
         </Text>
-        <Icon name="videocam" size={18} color="#008080" />
+        <Icon name="videocam" size={18} color="#0CB69B" />
       </View>
       <Text style={styles.waitingText}>
         {new Date(item.appointment_date) > new Date()
@@ -137,7 +137,7 @@ const PatientHomeScreen = () => {
       style={styles.specialtyItem}
       onPress={() => navigation.navigate('DoctorList', {specialty: item.name})}>
       <View style={[styles.specialtyIcon, {backgroundColor: '#E6F8F6'}]}>
-        <Icon name={item.icon} size={24} color="#008080" />
+        <Icon name={item.icon} size={24} color="#0CB69B" />
       </View>
       <Text style={styles.specialtyText}>{item.name}</Text>
     </TouchableOpacity>
@@ -145,7 +145,7 @@ const PatientHomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#008080" />
+      <StatusBar barStyle="light-content" backgroundColor="#0CB69B" />
 
       <View style={styles.headerBackground}>
         <SafeAreaView>
@@ -189,7 +189,7 @@ const PatientHomeScreen = () => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#008080" />
+          <ActivityIndicator size="large" color="#0CB69B" />
         </View>
       ) : (
         <ScrollView
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   headerBackground: {
-    backgroundColor: '#008080', // #0CB69B
+    backgroundColor: '#0CB69B', // #0CB69B
     paddingBottom: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   micButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     borderRadius: 50,
     width: 30,
     height: 30,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
   },
   appointmentsContainer: {
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     marginRight: 8,
   },
   doctorSpecialty: {
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   appointmentButtonText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
     fontSize: 14,
   },
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   bookNowButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 8,

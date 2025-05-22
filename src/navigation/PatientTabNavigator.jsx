@@ -26,7 +26,7 @@ const PatientTabNavigator = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#008080',
+        tabBarActiveTintColor: '#0CB69B',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
       })}>

@@ -43,7 +43,7 @@ const DoctorDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#008080" />
+        <ActivityIndicator size="large" color="#0CB69B" />
       </View>
     );
   }
@@ -114,7 +114,7 @@ const DoctorDetailScreen = () => {
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Icon name="people-outline" size={24} color="#008080" />
+              <Icon name="people-outline" size={24} color="#0CB69B" />
               <View style={styles.statValueContainer}>
                 <Text style={styles.statValue}>
                   {doctor.patients_count || '2.4k+'}
@@ -126,7 +126,7 @@ const DoctorDetailScreen = () => {
             <View style={styles.statDivider} />
 
             <View style={styles.statItem}>
-              <Icon name="business-outline" size={24} color="#008080" />
+              <Icon name="business-outline" size={24} color="#0CB69B" />
               <View style={styles.statValueContainer}>
                 <Text style={styles.statValue}>
                   {doctor.experience || '8'} yrs+
@@ -138,7 +138,7 @@ const DoctorDetailScreen = () => {
             <View style={styles.statDivider} />
 
             <View style={styles.statItem}>
-              <Icon name="star-outline" size={24} color="#008080" />
+              <Icon name="star-outline" size={24} color="#0CB69B" />
               <View style={styles.statValueContainer}>
                 <Text style={styles.statValue}>{doctor.rating || '4.8'}</Text>
                 <Text style={styles.statLabel}>Rating</Text>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   goBackButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 30,
     fontWeight: 'bold',
-    color: '#008080',
+    color: '#0CB69B',
   },
   onlineIndicator: {
     position: 'absolute',
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 14,
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
   },
   feeAndBookingCard: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   bookAppointmentButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

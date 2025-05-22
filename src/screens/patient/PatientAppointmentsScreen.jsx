@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,8 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import { appointmentService } from '../../services/api';
+import {useNavigation} from '@react-navigation/native';
+import {appointmentService} from '../../services/api';
 
 const PatientAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
@@ -27,7 +27,7 @@ const PatientAppointmentsScreen = () => {
     try {
       setLoading(true);
       const response = await appointmentService.getPatientAppointments();
-      
+
       if (response.success) {
         setAppointments(response.appointments);
       }
@@ -39,7 +39,7 @@ const PatientAppointmentsScreen = () => {
     }
   };
 
-  const cancelAppointment = async (appointmentId) => {
+  const cancelAppointment = async appointmentId => {
     try {
       Alert.alert(
         'Cancel Appointment',
@@ -53,16 +53,20 @@ const PatientAppointmentsScreen = () => {
             text: 'Yes',
             onPress: async () => {
               setLoading(true);
-              const response = await appointmentService.cancelAppointment(appointmentId);
-              
+              const response = await appointmentService.cancelAppointment(
+                appointmentId,
+              );
+
               if (response.success) {
                 // Update the appointment status locally
-                setAppointments(appointments.map(app => {
-                  if (app.id === appointmentId) {
-                    return { ...app, status: 'cancelled' };
-                  }
-                  return app;
-                }));
+                setAppointments(
+                  appointments.map(app => {
+                    if (app.id === appointmentId) {
+                      return {...app, status: 'cancelled'};
+                    }
+                    return app;
+                  }),
+                );
                 Alert.alert('Success', 'Appointment cancelled successfully');
               } else {
                 Alert.alert('Error', 'Failed to cancel appointment');
@@ -80,7 +84,7 @@ const PatientAppointmentsScreen = () => {
 
   const getFilteredAppointments = () => {
     const now = new Date();
-    
+
     if (activeTab === 'upcoming') {
       return appointments.filter(app => {
         const appDate = new Date(app.appointment_date);
@@ -91,11 +95,11 @@ const PatientAppointmentsScreen = () => {
     } else if (activeTab === 'cancelled') {
       return appointments.filter(app => app.status === 'cancelled');
     }
-    
+
     return appointments;
   };
 
-  const renderAppointmentItem = ({ item }) => {
+  const renderAppointmentItem = ({item}) => {
     const appointmentDate = new Date(item.appointment_date);
     const formattedDate = appointmentDate.toLocaleDateString('en-US', {
       month: 'short',
@@ -114,38 +118,45 @@ const PatientAppointmentsScreen = () => {
             <Text style={styles.dateText}>{formattedDate}</Text>
             <Text style={styles.timeText}>{formattedTime}</Text>
           </View>
-          <View style={[
-            styles.statusBadge, 
-            item.status === 'completed' ? styles.completedBadge : 
-            item.status === 'cancelled' ? styles.cancelledBadge : 
-            styles.scheduledBadge
-          ]}>
-            <Text style={styles.statusText}>{
-              item.status.charAt(0).toUpperCase() + item.status.slice(1)
-            }</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              item.status === 'completed'
+                ? styles.completedBadge
+                : item.status === 'cancelled'
+                ? styles.cancelledBadge
+                : styles.scheduledBadge,
+            ]}>
+            <Text style={styles.statusText}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
           </View>
         </View>
-        
+
         <View style={styles.doctorInfo}>
           <View style={styles.doctorDetails}>
-            <Text style={styles.doctorName}>Dr. {item.doctor?.name || 'Doctor'}</Text>
-            <Text style={styles.specialtyText}>{item.doctor?.specialty || 'Specialist'}</Text>
+            <Text style={styles.doctorName}>
+              Dr. {item.doctor?.name || 'Doctor'}
+            </Text>
+            <Text style={styles.specialtyText}>
+              {item.doctor?.specialty || 'Specialist'}
+            </Text>
           </View>
         </View>
-        
+
         <View style={styles.appointmentFooter}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.detailsButton}
-            onPress={() => navigation.navigate('DoctorDetail', { doctorId: item.doctor_id })}
-          >
+            onPress={() =>
+              navigation.navigate('DoctorDetail', {doctorId: item.doctor_id})
+            }>
             <Text style={styles.detailsText}>View Details</Text>
           </TouchableOpacity>
-          
+
           {activeTab === 'upcoming' && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => cancelAppointment(item.id)}
-            >
+              onPress={() => cancelAppointment(item.id)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           )}
@@ -159,51 +170,59 @@ const PatientAppointmentsScreen = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Appointments</Text>
       </View>
-      
+
       <View style={styles.tabsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>
+          onPress={() => setActiveTab('upcoming')}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'upcoming' && styles.activeTabText,
+            ]}>
             Upcoming
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'completed' && styles.activeTab]}
-          onPress={() => setActiveTab('completed')}
-        >
-          <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>
+          onPress={() => setActiveTab('completed')}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'completed' && styles.activeTabText,
+            ]}>
             Completed
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'cancelled' && styles.activeTab]}
-          onPress={() => setActiveTab('cancelled')}
-        >
-          <Text style={[styles.tabText, activeTab === 'cancelled' && styles.activeTabText]}>
+          onPress={() => setActiveTab('cancelled')}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'cancelled' && styles.activeTabText,
+            ]}>
             Cancelled
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#008080" />
+          <ActivityIndicator size="large" color="#0CB69B" />
         </View>
       ) : (
         <FlatList
           data={getFilteredAppointments()}
           renderItem={renderAppointmentItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No appointments found</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.bookButton}
-                onPress={() => navigation.navigate('DoctorList')}
-              >
+                onPress={() => navigation.navigate('DoctorList')}>
                 <Text style={styles.bookButtonText}>Book an Appointment</Text>
               </TouchableOpacity>
             </View>
@@ -220,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
@@ -239,7 +258,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
@@ -250,14 +269,14 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#008080',
+    borderBottomColor: '#0CB69B',
   },
   tabText: {
     fontSize: 14,
     color: '#666',
   },
   activeTabText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: 'bold',
   },
   listContainer: {
@@ -275,7 +294,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     padding: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -345,10 +364,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#008080',
+    borderColor: '#0CB69B',
   },
   detailsText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -369,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
   },
   joinText: {
     color: '#fff',
@@ -388,7 +407,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   bookButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,

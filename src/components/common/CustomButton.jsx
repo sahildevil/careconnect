@@ -35,7 +35,7 @@ const CustomButton = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     borderRadius: 10,
     padding: 15,
     alignItems: 'center',

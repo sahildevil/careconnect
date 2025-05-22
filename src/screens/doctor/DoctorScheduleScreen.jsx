@@ -150,7 +150,7 @@ const DoctorScheduleScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#008080" />
+        <ActivityIndicator size="large" color="#0CB69B" />
       </View>
     );
   }
@@ -169,7 +169,7 @@ const DoctorScheduleScreen = () => {
 
       <ScrollView style={styles.content}>
         <View style={styles.instructionCard}>
-          <Icon name="information-circle-outline" size={24} color="#008080" />
+          <Icon name="information-circle-outline" size={24} color="#0CB69B" />
           <Text style={styles.instructionText}>
             Set your availability for patient appointments by toggling days and
             time slots.
@@ -182,7 +182,7 @@ const DoctorScheduleScreen = () => {
               <Text style={styles.dayText}>{day}</Text>
               <Switch
                 trackColor={{false: '#ccc', true: '#b2dfdb'}}
-                thumbColor={schedule[day]?.isAvailable ? '#008080' : '#f4f3f4'}
+                thumbColor={schedule[day]?.isAvailable ? '#0CB69B' : '#f4f3f4'}
                 onValueChange={() => handleDayToggle(day)}
                 value={schedule[day]?.isAvailable}
               />
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   header: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -307,18 +307,18 @@ const styles = StyleSheet.create({
   activeTimeSlot: {
     backgroundColor: '#e0f2f1',
     borderWidth: 1,
-    borderColor: '#008080',
+    borderColor: '#0CB69B',
   },
   timeSlotText: {
     fontSize: 14,
     color: '#666',
   },
   activeTimeSlotText: {
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
   },
   saveButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingVertical: 15,
     borderRadius: 10,
     marginVertical: 20,

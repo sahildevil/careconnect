@@ -106,7 +106,7 @@ const DoctorHomeScreen = () => {
             </Text>
           </View>
           <View style={styles.timeSlot}>
-            <Icon name="time-outline" size={16} color="#008080" />
+            <Icon name="time-outline" size={16} color="#0CB69B" />
             <Text style={styles.timeText}>{appointmentTime}</Text>
           </View>
         </View>
@@ -131,7 +131,7 @@ const DoctorHomeScreen = () => {
                   appointment: item,
                 })
               }>
-              <Icon name="calendar-outline" size={16} color="#008080" />
+              <Icon name="calendar-outline" size={16} color="#0CB69B" />
               <Text style={[styles.actionButtonText, styles.rescheduleText]}>
                 Reschedule
               </Text>
@@ -144,7 +144,7 @@ const DoctorHomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#008080" />
+      <StatusBar barStyle="light-content" backgroundColor="#0CB69B" />
 
       <View style={styles.headerBackground}>
         <SafeAreaView>
@@ -167,7 +167,7 @@ const DoctorHomeScreen = () => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#008080" />
+          <ActivityIndicator size="large" color="#0CB69B" />
         </View>
       ) : (
         <ScrollView
@@ -177,7 +177,7 @@ const DoctorHomeScreen = () => {
           <View style={styles.statsContainer}>
             <View style={styles.statsRow}>
               <View style={[styles.statsCard, {backgroundColor: '#E6F8F6'}]}>
-                <Icon name="calendar" size={24} color="#008080" />
+                <Icon name="calendar" size={24} color="#0CB69B" />
                 <Text style={styles.statsNumber}>{stats.today}</Text>
                 <Text style={styles.statsLabel}>Today</Text>
               </View>
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   headerBackground: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     paddingBottom: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   },
   seeAll: {
     fontSize: 14,
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
   },
   appointmentCard: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   timeText: {
     marginLeft: 4,
     fontSize: 12,
-    color: '#008080',
+    color: '#0CB69B',
     fontWeight: '500',
   },
   appointmentFooter: {
@@ -409,12 +409,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   startButton: {
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
   },
   rescheduleButton: {
     backgroundColor: '#E6F8F6',
     borderWidth: 1,
-    borderColor: '#008080',
+    borderColor: '#0CB69B',
   },
   actionButtonText: {
     fontSize: 12,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   rescheduleText: {
-    color: '#008080',
+    color: '#0CB69B',
   },
   emptyStateContainer: {
     alignItems: 'center',

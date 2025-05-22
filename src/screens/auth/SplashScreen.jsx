@@ -26,7 +26,7 @@ const SplashScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#008080" barStyle="light-content" />
+      <StatusBar backgroundColor="#0CB69B" barStyle="light-content" />
       <View style={styles.logoContainer}>
         {/* <Image
           // Replace with your logo
@@ -45,7 +45,7 @@ const SplashScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#008080',
+    backgroundColor: '#0CB69B',
     alignItems: 'center',
     justifyContent: 'center',
   },
