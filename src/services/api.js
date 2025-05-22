@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.5:3000/api';
+const API_URL = 'https://careconnect-server-teal.vercel.app/api';
 
 // Create axios instance
 const api = axios.create({
@@ -22,6 +22,8 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       } else {
         console.log('API: No valid token found');
+        // Try to refresh the session if no valid token
+        await refreshSession();
       }
     } catch (error) {
       console.error('API: Error getting token', error);
@@ -30,6 +32,31 @@ api.interceptors.request.use(
   },
   error => Promise.reject(error),
 );
+
+// Add this new function to check and refresh the session
+const refreshSession = async () => {
+  try {
+    console.log('Attempting to refresh session...');
+    const userString = await AsyncStorage.getItem('user');
+
+    // If we have user data but no valid token, try to refresh
+    if (userString) {
+      const userData = JSON.parse(userString);
+      const userTypeData = await AsyncStorage.getItem('userType');
+
+      if (userData && userData.email && userTypeData) {
+        console.log('Found stored user data, refreshing session...');
+        // We can't actually refresh the token without the password,
+        // but we can at least log this information for debugging
+        console.log(
+          `User would need to re-authenticate: ${userData.email} (${userTypeData})`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Error refreshing session:', error);
+  }
+};
 
 // Add API interceptors for better error handling
 api.interceptors.response.use(
@@ -54,7 +81,10 @@ export const authService = {
         await AsyncStorage.setItem('token', response.data.token);
         // Store user data if available
         if (response.data.user) {
-          await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+          await AsyncStorage.setItem(
+            'user',
+            JSON.stringify(response.data.user),
+          );
         }
       }
       return response.data;
@@ -208,7 +238,7 @@ export const doctorService = {
     }
   },
 
-  checkOnboardingStatus: async (doctorId) => {
+  checkOnboardingStatus: async doctorId => {
     try {
       // Fixed: Accept doctorId as parameter instead of using undefined 'user'
       if (!doctorId) {
@@ -246,7 +276,7 @@ export const appointmentService = {
   getDoctorAppointments: async (doctorId = null) => {
     try {
       let finalDoctorId = doctorId;
-      
+
       // If no doctorId provided, get from AsyncStorage
       if (!finalDoctorId) {
         const userString = await AsyncStorage.getItem('user');
@@ -262,14 +292,17 @@ export const appointmentService = {
       }
 
       console.log('Fetching appointments for doctor ID:', finalDoctorId);
-      
+
       const response = await api.get(
         `/appointments/doctor?doctor_id=${finalDoctorId}`,
       );
-      
+
       console.log('Response status:', response.status);
-      console.log('Appointments found:', response.data?.appointments?.length || 0);
-      
+      console.log(
+        'Appointments found:',
+        response.data?.appointments?.length || 0,
+      );
+
       return response.data;
     } catch (error) {
       console.error('Error in getDoctorAppointments:', error);
@@ -289,13 +322,38 @@ export const appointmentService = {
         throw new Error('User ID not found');
       }
 
+      // Add debugging information
+      console.log('Fetching appointments for patient ID:', userData.id);
+      console.log(
+        'Token status:',
+        (await AsyncStorage.getItem('token')) ? 'Present' : 'Missing',
+      );
+
       const response = await api.get(
         `/appointments/patient?user_id=${userData.id}`,
       );
-      console.log('Fetching appointments for user:', userData.id);
+
+      // Add more detailed logging
+      console.log(
+        `Received ${
+          response.data?.appointments?.length || 0
+        } appointments from server`,
+      );
+      if (response.data?.appointments?.length > 0) {
+        console.log('First appointment:', {
+          id: response.data.appointments[0].id,
+          date: response.data.appointments[0].appointment_date,
+          status: response.data.appointments[0].status,
+        });
+      }
+
       return response.data;
     } catch (error) {
       console.error('Error in getPatientAppointments:', error);
+      console.error(
+        'Network status:',
+        error.response ? `HTTP ${error.response.status}` : 'No response',
+      );
       throw error.response ? error.response.data : new Error('Network error');
     }
   },

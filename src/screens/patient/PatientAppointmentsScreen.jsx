@@ -8,18 +8,34 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
+import {useNetInfo} from '@react-native-community/netinfo';
 
 const PatientAppointmentsScreen = () => {
   const {user} = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
+  const netInfo = useNetInfo();
+
+  useEffect(() => {
+    // Check network connectivity
+    if (!netInfo.isConnected && netInfo.isInternetReachable === false) {
+      Alert.alert(
+        'No Internet Connection',
+        'Please check your internet connection and try again.',
+      );
+    } else {
+      fetchAppointments();
+    }
+  }, [netInfo.isConnected]);
 
   useEffect(() => {
     fetchAppointments();
@@ -51,6 +67,32 @@ const PatientAppointmentsScreen = () => {
       console.error('Error fetching appointments:', error);
       const errorMessage = error.message || 'Failed to load appointments';
       Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add a retry mechanism
+  const fetchAppointmentsWithRetry = async (retries = 2) => {
+    try {
+      setLoading(true);
+      const response = await appointmentService.getPatientAppointments();
+
+      if (response.success) {
+        console.log(`Loaded ${response.appointments.length} appointments`);
+        setAppointments(response.appointments);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      if (retries > 0) {
+        console.log(`Retrying... (${retries} attempts left)`);
+        setTimeout(() => fetchAppointmentsWithRetry(retries - 1), 2000);
+      } else {
+        Alert.alert(
+          'Error',
+          'Failed to load appointments. Pull down to refresh.',
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -197,6 +239,11 @@ const PatientAppointmentsScreen = () => {
     );
   };
 
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchAppointments().finally(() => setRefreshing(false));
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -249,6 +296,13 @@ const PatientAppointmentsScreen = () => {
           renderItem={renderAppointmentItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#0CB69B']}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No appointments found</Text>

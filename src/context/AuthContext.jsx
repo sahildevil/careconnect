@@ -15,12 +15,13 @@ export const AuthProvider = ({children}) => {
   const [userType, setUserType] = useState(null); // 'patient' or 'doctor'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const API_URL = 'http://192.168.1.8:3000/api';
   useEffect(() => {
     // Check if user is logged in on app start
     loadUserFromStorage();
   }, []);
 
+  // Update the loadUserFromStorage function
   const loadUserFromStorage = async () => {
     try {
       console.log('Loading user data from storage...');
@@ -32,18 +33,55 @@ export const AuthProvider = ({children}) => {
       console.log('User type from storage:', userTypeData);
       console.log('Token from storage:', tokenData ? 'exists' : 'missing');
 
-      if (userData) {
+      // Check if we have all required data
+      if (userData && userTypeData && tokenData) {
         const parsedUserData = JSON.parse(userData);
-        setUser(parsedUserData);
-        setUserType(userTypeData);
-        console.log('User loaded successfully:', parsedUserData.id);
+
+        // Validate the token by making a test API call
+        try {
+          const isValid = await validateToken(tokenData);
+          if (isValid) {
+            setUser(parsedUserData);
+            setUserType(userTypeData);
+            console.log(
+              'User session restored successfully:',
+              parsedUserData.id,
+            );
+          } else {
+            // If token validation fails, clear stored data
+            console.log('Stored token is invalid, clearing session data');
+            await AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('userType');
+          }
+        } catch (error) {
+          console.error('Error validating token:', error);
+        }
       } else {
-        console.log('No saved user data found');
+        console.log('Missing required session data');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add a token validation function
+  const validateToken = async token => {
+    try {
+      // Use the profile endpoint as a way to validate the token
+      const response = await fetch(`${API_URL}/auth/validate-token`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.status === 200;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
     }
   };
 
