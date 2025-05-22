@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.8:3000/api';
+const API_URL = 'http://192.168.1.5:3000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -61,6 +61,37 @@ export const authService = {
   resetPassword: async email => {
     try {
       const response = await api.post('/auth/reset-password', {email});
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  updateUserLocation: async (userId, location) => {
+    try {
+      const response = await api.post('/auth/update-location', {
+        userId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  getUserProfile: async () => {
+    try {
+      const response = await api.get('/auth/profile');
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  updateUserProfile: async profileData => {
+    try {
+      const response = await api.put('/auth/profile', profileData);
       return response.data;
     } catch (error) {
       throw error.response ? error.response.data : new Error('Network error');
