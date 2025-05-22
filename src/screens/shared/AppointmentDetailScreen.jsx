@@ -23,8 +23,16 @@ const AppointmentDetailScreen = () => {
   const route = useRoute();
 
   useEffect(() => {
-    const {appointmentId} = route.params;
-    fetchAppointmentDetails(appointmentId);
+    // Check if we have appointment object or just the ID
+    if (route.params.appointment) {
+      setAppointment(route.params.appointment);
+      setLoading(false);
+    } else if (route.params.appointmentId) {
+      fetchAppointmentDetails(route.params.appointmentId);
+    } else {
+      setLoading(false);
+      Alert.alert('Error', 'No appointment information provided');
+    }
   }, [route.params]);
 
   const fetchAppointmentDetails = async appointmentId => {
@@ -76,16 +84,20 @@ const AppointmentDetailScreen = () => {
     navigation.navigate('VideoCall', {appointmentId: appointment.id});
   };
 
+  // Function to determine status color:
+
   const getStatusColor = status => {
     switch (status) {
-      case 'scheduled':
-        return '#4CAF50';
       case 'completed':
-        return '#2196F3';
+        return '#4CAF50';
       case 'cancelled':
         return '#F44336';
+      case 'scheduled':
+        return '#0CB69B';
+      case 'pending':
+        return '#FFC107';
       default:
-        return '#9E9E9E';
+        return '#0CB69B';
     }
   };
 

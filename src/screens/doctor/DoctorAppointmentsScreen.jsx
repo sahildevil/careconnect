@@ -82,8 +82,8 @@ const DoctorAppointmentsScreen = () => {
         const appDate = new Date(app.appointment_date);
         return (
           appDate >= now &&
-          app.status !== 'cancelled' &&
-          app.status !== 'completed'
+          (app.status === 'scheduled' || app.status === 'pending') &&
+          app.status !== 'cancelled'
         );
       });
     } else if (activeTab === 'completed') {

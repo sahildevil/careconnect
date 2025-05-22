@@ -13,6 +13,7 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {appointmentService} from '../../services/api';
+import {useAuth} from '../../context/AuthContext';
 import {
   BackButton,
   CustomButton,
@@ -115,27 +116,34 @@ const BookAppointmentScreen = () => {
       appointmentDate.setHours(hour, parseInt(minutes), 0, 0);
 
       const appointmentData = {
+        patient_id: user.id, // Changed from user_id to patient_id
         doctor_id: doctor.id,
         appointment_date: appointmentDate.toISOString(),
         reason: reason,
         appointment_type: 'consultation',
       };
 
+      console.log('Booking appointment with data:', appointmentData);
       const response = await appointmentService.bookAppointment(
         appointmentData,
       );
 
       if (response.success) {
-        Alert.alert('Success', 'Appointment booked successfully!', [
-          {
-            text: 'View Appointments',
-            onPress: () => navigation.navigate('Appointments'),
-          },
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        Alert.alert(
+          'Appointment Scheduled',
+          'Your appointment has been successfully scheduled with Dr. ' +
+            doctor.name,
+          [
+            {
+              text: 'View Appointments',
+              onPress: () => navigation.navigate('Appointments'),
+            },
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ],
+        );
       }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to book appointment');

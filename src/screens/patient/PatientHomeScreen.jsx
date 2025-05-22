@@ -19,7 +19,7 @@ import {useNavigation} from '@react-navigation/native';
 import {doctorService, appointmentService, authService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import Geolocation from 'react-native-geolocation-service';
-
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 const specialties = [
   {id: 1, name: 'Dentist', icon: 'medical'},
   {id: 2, name: 'Cardiology', icon: 'heart'},
@@ -35,7 +35,7 @@ const PatientHomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
   const {user} = useAuth();
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     fetchData();
     // Request location permission after a short delay
@@ -250,8 +250,8 @@ const PatientHomeScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0CB69B" />
+    <View style={[styles.container, {paddingTop: insets.top}]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#0CB69B" />
 
       <View style={styles.headerBackground}>
         <SafeAreaView>
