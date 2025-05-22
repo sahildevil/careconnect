@@ -33,7 +33,35 @@ const DoctorHomeScreen = () => {
     fetchAppointments();
   }, []);
 
-  // Improve the fetchAppointments function
+  // Helper function to get date in YYYY-MM-DD format
+  const getDateString = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to check if a date is today
+  const isToday = (dateString) => {
+    const today = getDateString(new Date());
+    const appointmentDate = getDateString(dateString);
+    return today === appointmentDate;
+  };
+
+  // Helper function to check if a date is in the future (not today)
+  const isFuture = (dateString) => {
+    const today = new Date();
+    const appointmentDate = new Date(dateString);
+    
+    // Set time to start of day for fair comparison
+    today.setHours(0, 0, 0, 0);
+    appointmentDate.setHours(0, 0, 0, 0);
+    
+    return appointmentDate > today;
+  };
+
+  // Improved fetchAppointments function with better date handling
   const fetchAppointments = async () => {
     try {
       setLoading(true);
@@ -45,43 +73,27 @@ const DoctorHomeScreen = () => {
         const appointments = response.appointments;
         console.log(`Received ${appointments.length} appointments from server`);
 
-        // Get today's date without time component for fair comparison
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Get today's date string for comparison
+        const todayString = getDateString(new Date());
+        console.log('Today\'s date string:', todayString);
 
-        // Get tomorrow's date
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        console.log(
-          'Filtering appointments for today:',
-          today.toISOString().split('T')[0],
-        );
-
-        // Filter appointments for today - more robust approach
+        // Filter appointments for today with improved date comparison
         const todayAppts = appointments.filter(app => {
-          // Convert to date and remove time component
-          const appDate = new Date(app.appointment_date);
-          const appDateString = appDate.toISOString().split('T')[0];
-          const todayString = today.toISOString().split('T')[0];
-
-          // Compare date strings (YYYY-MM-DD format)
-          const isToday = appDateString === todayString;
-          if (isToday) {
-            console.log('Found appointment for today:', app.id, appDateString);
-          }
-          return isToday && app.status !== 'canceled' && app.status !== 'completed';
+          const appointmentDateString = getDateString(app.appointment_date);
+          const isTodayAppointment = appointmentDateString === todayString;
+          const isActiveStatus = app.status !== 'canceled' && app.status !== 'completed';
+          
+          console.log(`Appointment ${app.id}: Date=${appointmentDateString}, IsToday=${isTodayAppointment}, Status=${app.status}, IsActive=${isActiveStatus}`);
+          
+          return isTodayAppointment && isActiveStatus;
         });
 
         // Filter upcoming appointments (future dates, not today)
         const upcomingAppts = appointments.filter(app => {
-          const appDate = new Date(app.appointment_date);
-          appDate.setHours(0, 0, 0, 0);
-          return (
-            appDate > today &&
-            app.status !== 'canceled' &&
-            app.status !== 'completed'
-          );
+          const isFutureAppointment = isFuture(app.appointment_date);
+          const isActiveStatus = app.status !== 'canceled' && app.status !== 'completed';
+          
+          return isFutureAppointment && isActiveStatus;
         });
 
         // Count completed and cancelled appointments
@@ -95,6 +107,14 @@ const DoctorHomeScreen = () => {
         console.log(
           `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming`,
         );
+        
+        // Log today's appointments for debugging
+        console.log('Today\'s appointments:', todayAppts.map(app => ({
+          id: app.id,
+          date: app.appointment_date,
+          patient: app.patients?.name || 'Unknown',
+          status: app.status
+        })));
 
         setTodayAppointments(todayAppts);
         setUpcomingAppointments(upcomingAppts);
@@ -106,81 +126,109 @@ const DoctorHomeScreen = () => {
         });
       } else {
         console.error('Invalid response format or no appointments found');
+        // Set empty arrays if no valid data
+        setTodayAppointments([]);
+        setUpcomingAppointments([]);
+        setStats({
+          today: 0,
+          upcoming: 0,
+          completed: 0,
+          cancelled: 0,
+        });
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
+      // Set empty arrays on error
+      setTodayAppointments([]);
+      setUpcomingAppointments([]);
+      setStats({
+        today: 0,
+        upcoming: 0,
+        completed: 0,
+        cancelled: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Update the renderAppointmentItem function
+  // Improved renderAppointmentItem function with better error handling
   const renderAppointmentItem = ({item}) => {
-    const appointmentTime = new Date(item.appointment_date).toLocaleTimeString(
-      [],
-      {hour: '2-digit', minute: '2-digit'},
-    );
+    try {
+      const appointmentDate = new Date(item.appointment_date);
+      const appointmentTime = appointmentDate.toLocaleTimeString([], {
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true
+      });
 
-    // Log the appointment to debug
-    console.log('Rendering appointment:', {
-      id: item.id,
-      date: item.appointment_date,
-      patientInfo: item.patients || 'No patient info',
-    });
+      // Log the appointment to debug
+      console.log('Rendering appointment:', {
+        id: item.id,
+        date: item.appointment_date,
+        patientInfo: item.patients || 'No patient info',
+        status: item.status
+      });
 
-    return (
-      <View style={styles.appointmentCard}>
-        <View style={styles.patientInfo}>
-          <View style={styles.patientAvatar}>
-            <Text style={styles.avatarText}>
-              {/* Use patients (plural) instead of patient */}
-              {item.patients?.name?.charAt(0) || 'P'}
-            </Text>
+      // Get patient name with fallback
+      const patientName = item.patients?.name || item.patient?.name || 'Patient';
+      const patientInitial = patientName.charAt(0).toUpperCase();
+
+      return (
+        <View style={styles.appointmentCard}>
+          <View style={styles.patientInfo}>
+            <View style={styles.patientAvatar}>
+              <Text style={styles.avatarText}>{patientInitial}</Text>
+            </View>
+            <View style={styles.patientDetails}>
+              <Text style={styles.patientName}>{patientName}</Text>
+              <Text style={styles.appointmentType}>
+                {item.appointment_type || 'Consultation'}
+              </Text>
+            </View>
+            <View style={styles.timeSlot}>
+              <Icon name="time-outline" size={16} color="#0CB69B" />
+              <Text style={styles.timeText}>{appointmentTime}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.patientName}>
-              {/* Use patients (plural) instead of patient */}
-              {item.patients?.name || 'Patient'}
+
+          <View style={styles.appointmentFooter}>
+            <Text style={styles.reasonText} numberOfLines={1}>
+              {item.reason || 'General checkup'}
             </Text>
-            <Text style={styles.appointmentType}>
-              {item.appointment_type || 'Consultation'}
-            </Text>
-          </View>
-          <View style={styles.timeSlot}>
-            <Icon name="time-outline" size={16} color="#0CB69B" />
-            <Text style={styles.timeText}>{appointmentTime}</Text>
+            <View style={styles.actionButtons}>
+              <CustomButton
+                title="Start"
+                onPress={() =>
+                  navigation.navigate('VideoCall', {appointment: item})
+                }
+                style={[styles.actionButton, styles.startButton]}
+                textStyle={styles.actionButtonText}
+                icon={<Icon name="videocam" size={16} color="#fff" />}
+              />
+
+              <CustomButton
+                title="Reschedule"
+                onPress={() =>
+                  navigation.navigate('RescheduleAppointment', {
+                    appointmentId: item.id,
+                  })
+                }
+                style={[styles.actionButton, styles.rescheduleButton]}
+                textStyle={[styles.actionButtonText, styles.rescheduleText]}
+              />
+            </View>
           </View>
         </View>
-
-        <View style={styles.appointmentFooter}>
-          <Text style={styles.reasonText} numberOfLines={1}>
-            {item.reason || 'General checkup'}
-          </Text>
-          <View style={styles.actionButtons}>
-            <CustomButton
-              title="Start"
-              onPress={() =>
-                navigation.navigate('VideoCall', {appointment: item})
-              }
-              style={[styles.actionButton, styles.startButton]}
-              textStyle={styles.actionButtonText}
-              icon={<Icon name="videocam" size={16} color="#fff" />}
-            />
-
-            <CustomButton
-              title="Reschedule"
-              onPress={() =>
-                navigation.navigate('RescheduleAppointment', {
-                  appointmentId: item.id,
-                })
-              }
-              style={[styles.actionButton, styles.rescheduleButton]}
-              textStyle={[styles.actionButtonText, styles.rescheduleText]}
-            />
-          </View>
+      );
+    } catch (error) {
+      console.error('Error rendering appointment item:', error);
+      return (
+        <View style={styles.appointmentCard}>
+          <Text style={styles.errorText}>Error displaying appointment</Text>
         </View>
-      </View>
-    );
+      );
+    }
   };
 
   return (
@@ -209,6 +257,7 @@ const DoctorHomeScreen = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
+          <Text style={styles.loadingText}>Loading appointments...</Text>
         </View>
       ) : (
         <ScrollView
@@ -253,14 +302,18 @@ const DoctorHomeScreen = () => {
 
           {todayAppointments.length > 0 ? (
             todayAppointments.map((appointment, index) => (
-              <React.Fragment key={appointment.id || index}>
+              <React.Fragment key={appointment.id || `today-${index}`}>
                 {renderAppointmentItem({item: appointment})}
               </React.Fragment>
             ))
           ) : (
             <View style={styles.emptyStateContainer}>
+              <Icon name="calendar-outline" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>
                 No appointments scheduled for today
+              </Text>
+              <Text style={styles.emptyStateSubText}>
+                Your schedule is clear for today
               </Text>
             </View>
           )}
@@ -278,14 +331,18 @@ const DoctorHomeScreen = () => {
             upcomingAppointments
               .slice(0, 3)
               .map((appointment, index) => (
-                <React.Fragment key={appointment.id || index}>
+                <React.Fragment key={appointment.id || `upcoming-${index}`}>
                   {renderAppointmentItem({item: appointment})}
                 </React.Fragment>
               ))
           ) : (
             <View style={styles.emptyStateContainer}>
+              <Icon name="calendar-outline" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>
                 No upcoming appointments
+              </Text>
+              <Text style={styles.emptyStateSubText}>
+                New appointments will appear here
               </Text>
             </View>
           )}
@@ -335,6 +392,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
   statsContainer: {
     padding: 20,
@@ -395,13 +457,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  appointmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   patientInfo: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -418,6 +474,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#0CB69B',
+  },
+  patientDetails: {
+    flex: 1,
   },
   patientName: {
     fontSize: 16,
@@ -484,7 +543,7 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     alignItems: 'center',
-    padding: 20,
+    padding: 30,
     backgroundColor: '#fff',
     marginHorizontal: 20,
     borderRadius: 15,
@@ -493,6 +552,19 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#666',
+    marginTop: 10,
+    fontWeight: '500',
+  },
+  emptyStateSubText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 5,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    padding: 10,
   },
 });
 
