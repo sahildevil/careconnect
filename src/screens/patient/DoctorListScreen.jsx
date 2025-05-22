@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -20,6 +21,7 @@ const DoctorListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
+  const [error, setError] = useState(null);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -47,13 +49,26 @@ const DoctorListScreen = () => {
   const fetchDoctors = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await doctorService.getAllDoctors();
 
       if (response.success) {
-        setDoctors(response.doctors);
-        setFilteredDoctors(response.doctors);
+        // Debug: print all specialties in the database
+        const specialtiesInDb = [...new Set(response.doctors.map(doc => doc.specialty))];
+        console.log('Specialties in database:', specialtiesInDb);
+        
+        // Only show visible doctors
+        const visibleDoctors = response.doctors.filter(doc => doc.is_visible !== false);
+        console.log(`Found ${visibleDoctors.length} visible doctors out of ${response.doctors.length}`);
+        
+        setDoctors(visibleDoctors);
+        setFilteredDoctors(visibleDoctors);
+      } else {
+        setError('Failed to fetch doctors');
+        console.error('API returned failure:', response);
       }
     } catch (error) {
+      setError('Error connecting to server');
       console.error('Error fetching doctors:', error);
     } finally {
       setLoading(false);
@@ -63,11 +78,42 @@ const DoctorListScreen = () => {
   const filterDoctors = () => {
     let filtered = [...doctors];
 
-    // Filter by specialty
+    // Filter by specialty - more flexible matching
     if (selectedSpecialty) {
       filtered = filtered.filter(
-        doctor => doctor.specialty === selectedSpecialty,
+        doctor => {
+          // Handle potential null values and normalize strings
+          const docSpecialty = (doctor.specialty || '').trim().toLowerCase();
+          const selectedSpec = selectedSpecialty.trim().toLowerCase();
+          
+          // Map similar specialties for better matching
+          const specialtyMap = {
+            'orthopedic': ['orthopedics', 'orthopaedic', 'orthopaedics'],
+            'cardiology': ['cardiologist', 'heart specialist', 'cardiac'],
+            'dermatology': ['dermatologist', 'skin specialist'],
+            'neurology': ['neurologist', 'neuro', 'brain specialist'],
+            'pediatrics': ['pediatric', 'pediatrician', 'child specialist'],
+            'dentist': ['dental', 'dentistry'],
+            'general medicine': ['general physician', 'family medicine', 'gp']
+          };
+          
+          // Check for direct match
+          if (docSpecialty === selectedSpec) return true;
+          
+          // Check for related specialties
+          for (const [key, values] of Object.entries(specialtyMap)) {
+            if ((key.includes(selectedSpec) || values.some(v => selectedSpec.includes(v))) && 
+                (docSpecialty.includes(key) || values.some(v => docSpecialty.includes(v)))) {
+              return true;
+            }
+          }
+          
+          // Log the comparison for debugging
+          console.log(`No match for: DB="${docSpecialty}" vs Selected="${selectedSpec}"`);
+          return false;
+        }
       );
+      console.log(`After specialty filter: ${filtered.length} doctors match "${selectedSpecialty}"`);
     }
 
     // Filter by search query
@@ -75,82 +121,21 @@ const DoctorListScreen = () => {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
         doctor =>
-          doctor.name.toLowerCase().includes(query) ||
-          (doctor.specialty && doctor.specialty.toLowerCase().includes(query)),
+          (doctor.name || '').toLowerCase().includes(query) ||
+          ((doctor.specialty || '').toLowerCase().includes(query)),
       );
+      console.log(`After search filter: ${filtered.length} doctors match "${searchQuery}"`);
     }
 
     setFilteredDoctors(filtered);
   };
 
-  const renderDoctorItem = ({item}) => (
-    <TouchableOpacity
-      style={styles.doctorCard}
-      onPress={() => navigation.navigate('DoctorDetail', {doctorId: item.id})}>
-      <View style={styles.cardContent}>
-        <View style={styles.doctorAvatar}>
-          <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
-        </View>
-
-        <View style={styles.doctorInfo}>
-          <View style={styles.nameContainer}>
-            <Text style={styles.doctorName}>Dr. {item.name}</Text>
-            <View style={styles.ratingContainer}>
-              <Icon name="star" size={14} color="#FFD700" />
-              <Text style={styles.ratingText}>{item.rating || '4.5'}</Text>
-            </View>
-          </View>
-          <Text style={styles.specialtyText}>{item.specialty}</Text>
-          <Text style={styles.experienceText}>
-            {item.experience || '5'}+ years experience
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.cardFooter}>
-        <View style={styles.feeContainer}>
-          <Text style={styles.feeLabel}>Consultation Fee</Text>
-          <Text style={styles.feeAmount}>
-            ₹{item.consultation_fee || '500'}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.bookButton}
-          onPress={() =>
-            navigation.navigate('BookAppointment', {doctor: item})
-          }>
-          <Text style={styles.bookButtonText}>Book</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderSpecialtyItem = ({item}) => (
-    <TouchableOpacity
-      style={[
-        styles.specialtyChip,
-        selectedSpecialty === item && styles.selectedSpecialtyChip,
-      ]}
-      onPress={() =>
-        setSelectedSpecialty(selectedSpecialty === item ? null : item)
-      }>
-      <Text
-        style={[
-          styles.specialtyChipText,
-          selectedSpecialty === item && styles.selectedSpecialtyChipText,
-        ]}>
-        {item}
-      </Text>
-    </TouchableOpacity>
-  );
-
-  // List of specialties (could come from API)
+  // List of specialties - make sure these match exactly with database values
   const specialties = [
     'Cardiology',
     'Dermatology',
     'Neurology',
-    'Orthopedic',
+    'Orthopedics',  // Changed from 'Orthopedic' to match DoctorSignUp.jsx
     'Pediatrics',
     'Dentist',
     'General Medicine',
@@ -165,7 +150,9 @@ const DoctorListScreen = () => {
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find Doctors</Text>
-        <View style={{width: 24}} /> {/* Empty view for spacing */}
+        <TouchableOpacity onPress={fetchDoctors} style={{padding: 5}}>
+          <Icon name="refresh" size={22} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -186,7 +173,24 @@ const DoctorListScreen = () => {
       <View style={styles.specialtyContainer}>
         <FlatList
           data={specialties}
-          renderItem={renderSpecialtyItem}
+          renderItem={({item}) => (
+            <TouchableOpacity
+              style={[
+                styles.specialtyChip,
+                selectedSpecialty === item && styles.selectedSpecialtyChip,
+              ]}
+              onPress={() =>
+                setSelectedSpecialty(selectedSpecialty === item ? null : item)
+              }>
+              <Text
+                style={[
+                  styles.specialtyChipText,
+                  selectedSpecialty === item && styles.selectedSpecialtyChipText,
+                ]}>
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
           keyExtractor={item => item}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -197,10 +201,69 @@ const DoctorListScreen = () => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
         </View>
+      ) : error ? (
+        <View style={styles.emptyContainer}>
+          <Icon name="alert-circle" size={60} color="#ff6b6b" />
+          <Text style={styles.emptyText}>{error}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={fetchDoctors}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={filteredDoctors}
-          renderItem={renderDoctorItem}
+          renderItem={({item}) => (
+            <TouchableOpacity
+              style={styles.doctorCard}
+              onPress={() => navigation.navigate('DoctorDetail', {doctorId: item.id})}>
+              <View style={styles.cardContent}>
+                <View style={styles.doctorAvatar}>
+                  {item.avatar_url ? (
+                    <Image 
+                      source={{uri: item.avatar_url}} 
+                      style={styles.avatarImage}
+                      defaultSource={require('../../assets/images/Doctor_icon.png')} 
+                    />
+                  ) : (
+                    <Text style={styles.avatarText}>{item.name ? item.name.charAt(0) : '?'}</Text>
+                  )}
+                </View>
+
+                <View style={styles.doctorInfo}>
+                  <View style={styles.nameContainer}>
+                    <Text style={styles.doctorName}>Dr. {item.name}</Text>
+                    <View style={styles.ratingContainer}>
+                      <Icon name="star" size={14} color="#FFD700" />
+                      <Text style={styles.ratingText}>{item.rating || '4.5'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.specialtyText}>{item.specialty}</Text>
+                  <Text style={styles.experienceText}>
+                    {item.experience || '5'}+ years experience
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.cardFooter}>
+                <View style={styles.feeContainer}>
+                  <Text style={styles.feeLabel}>Consultation Fee</Text>
+                  <Text style={styles.feeAmount}>
+                    ₹{item.consultation_fee || '500'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.bookButton}
+                  onPress={() =>
+                    navigation.navigate('BookAppointment', {doctor: item})
+                  }>
+                  <Text style={styles.bookButtonText}>Book</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          )}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.doctorList}
           ListEmptyComponent={
@@ -210,6 +273,14 @@ const DoctorListScreen = () => {
               <Text style={styles.emptySubText}>
                 Try adjusting your search or filters
               </Text>
+              
+              {selectedSpecialty && (
+                <TouchableOpacity 
+                  style={styles.clearFilterButton}
+                  onPress={() => setSelectedSpecialty(null)}>
+                  <Text style={styles.clearFilterText}>Clear specialty filter</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -312,6 +383,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     fontSize: 24,
@@ -395,6 +471,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 5,
+  },
+  retryButton: {
+    backgroundColor: '#0CB69B',
+    paddingVertical: 10, 
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  clearFilterButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 15,
+  },
+  clearFilterText: {
+    color: '#0CB69B',
+    fontWeight: '500',
   },
 });
 
