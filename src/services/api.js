@@ -229,9 +229,25 @@ export const doctorService = {
 
 // Appointments services
 export const appointmentService = {
-  getDoctorAppointments: async () => {
+  getDoctorAppointments: async (doctorId = null) => {
     try {
-      const response = await api.get('/appointments/doctor');
+      // Get the user data from AsyncStorage if doctorId is not provided
+      if (!doctorId) {
+        const userString = await AsyncStorage.getItem('user');
+        if (!userString) {
+          throw new Error('User not authenticated');
+        }
+
+        const userData = JSON.parse(userString);
+        if (!userData || !userData.id) {
+          throw new Error('Doctor ID not found');
+        }
+        doctorId = userData.id;
+      }
+
+      const response = await api.get(
+        `/appointments/doctor?doctor_id=${doctorId}`,
+      );
       return response.data;
     } catch (error) {
       throw error.response ? error.response.data : new Error('Network error');

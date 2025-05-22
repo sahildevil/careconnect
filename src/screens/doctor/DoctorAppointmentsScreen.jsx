@@ -17,7 +17,7 @@ import {CustomButton, HeaderComponent} from '../../components';
 const DoctorAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [activeTab, setActiveTab] = useState('pending'); // Change default tab to pending
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -77,22 +77,87 @@ const DoctorAppointmentsScreen = () => {
   const getFilteredAppointments = () => {
     const now = new Date();
 
-    if (activeTab === 'upcoming') {
+    if (activeTab === 'pending') {
+      // Filter for pending appointments
+      return appointments.filter(app => app.status === 'pending');
+    } else if (activeTab === 'upcoming') {
       return appointments.filter(app => {
         const appDate = new Date(app.appointment_date);
         return (
           appDate >= now &&
-          (app.status === 'scheduled' || app.status === 'pending') &&
-          app.status !== 'cancelled'
+          app.status === 'confirmed' && // Only confirmed appointments
+          app.status !== 'canceled'
         );
       });
     } else if (activeTab === 'completed') {
       return appointments.filter(app => app.status === 'completed');
     } else if (activeTab === 'cancelled') {
-      return appointments.filter(app => app.status === 'cancelled');
+      return appointments.filter(app => app.status === 'canceled');
     }
 
     return appointments;
+  };
+
+  // Add function to handle approving/rejecting appointments
+  const handleAppointmentApproval = async (
+    appointmentId,
+    approved,
+    reason = '',
+  ) => {
+    try {
+      setLoading(true);
+      const response = await appointmentService.approveAppointment(
+        appointmentId,
+        approved,
+        approved ? null : reason, // If rejected, include the reason
+      );
+
+      if (response.success) {
+        // Update the appointment status locally
+        setAppointments(
+          appointments.map(app => {
+            if (app.id === appointmentId) {
+              return {
+                ...app,
+                status: approved ? 'confirmed' : 'canceled',
+                notes: approved ? app.notes : reason,
+              };
+            }
+            return app;
+          }),
+        );
+        Alert.alert(
+          'Success',
+          approved ? 'Appointment confirmed' : 'Appointment rejected',
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update appointment status');
+      }
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      Alert.alert('Error', 'Failed to update appointment status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add this function to prompt for rejection reason
+  const promptRejectReason = appointmentId => {
+    Alert.prompt(
+      'Reject Appointment',
+      'Please provide a reason for rejection:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Submit',
+          onPress: reason =>
+            handleAppointmentApproval(appointmentId, false, reason),
+        },
+      ],
+    );
   };
 
   const renderAppointmentItem = ({item}) => {
@@ -155,7 +220,27 @@ const DoctorAppointmentsScreen = () => {
             textStyle={styles.detailsText}
           />
 
-          {activeTab === 'upcoming' && (
+          {/* Show approve/reject buttons only for pending appointments */}
+          {item.status === 'pending' && (
+            <View style={styles.approvalButtons}>
+              <CustomButton
+                title="Approve"
+                onPress={() => handleAppointmentApproval(item.id, true)}
+                style={styles.approveButton}
+                textStyle={styles.approveText}
+              />
+
+              <CustomButton
+                title="Reject"
+                onPress={() => promptRejectReason(item.id)}
+                style={styles.rejectButton}
+                textStyle={styles.rejectText}
+              />
+            </View>
+          )}
+
+          {/* Show other buttons for different statuses */}
+          {activeTab === 'upcoming' && item.status === 'confirmed' && (
             <View style={styles.actionButtons}>
               <CustomButton
                 title="Complete"
@@ -191,6 +276,17 @@ const DoctorAppointmentsScreen = () => {
 
       <View style={styles.tabsContainer}>
         <TouchableOpacity
+          style={[styles.tab, activeTab === 'pending' && styles.activeTab]}
+          onPress={() => setActiveTab('pending')}>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'pending' && styles.activeTabText,
+            ]}>
+            Pending
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
           onPress={() => setActiveTab('upcoming')}>
           <Text
@@ -198,7 +294,7 @@ const DoctorAppointmentsScreen = () => {
               styles.tabText,
               activeTab === 'upcoming' && styles.activeTabText,
             ]}>
-            Upcoming
+            Confirmed
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -220,7 +316,7 @@ const DoctorAppointmentsScreen = () => {
               styles.tabText,
               activeTab === 'cancelled' && styles.activeTabText,
             ]}>
-            Cancelled
+            Canceled
           </Text>
         </TouchableOpacity>
       </View>
@@ -432,6 +528,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666',
+  },
+  approvalButtons: {
+    flexDirection: 'row',
+  },
+  approveButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    backgroundColor: '#4CAF50', // Green
+    marginRight: 8,
+  },
+  approveText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  rejectButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    backgroundColor: '#F44336', // Red
+  },
+  rejectText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   },
   appointmentsContainer: {
     paddingLeft: 20,
-    paddingVertical: 15,
+    paddingVertical: 10,
   },
   appointmentCard: {
     width: 200,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 15,
     marginRight: 15,
-    marginVertical: 8,
+    marginVertical: 4,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,

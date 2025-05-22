@@ -27,7 +27,7 @@ const convertLocalTimeToUTC = (date, timeStr) => {
 
   // Create a date object with the local date and time
   const localDate = new Date(date);
-  localDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  localDate.setHours(parseInt(hours, parseInt(minutes), 0, 0));
 
   // Get UTC components
   const utcHours = localDate.getUTCHours();
@@ -242,9 +242,10 @@ const BookAppointmentScreen = () => {
         }
 
         Alert.alert(
-          'Appointment Scheduled',
-          'Your appointment has been successfully scheduled with Dr. ' +
-            doctor.name,
+          'Appointment Requested',
+          'Your appointment request has been sent to Dr. ' +
+            doctor.name +
+            ' and is pending approval. You will be notified once it is confirmed.',
           [
             {
               text: 'View Appointments',
