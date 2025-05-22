@@ -99,6 +99,7 @@ const PatientAppointmentsScreen = () => {
     }
   };
 
+  // Update the getFilteredAppointments function to show pending appointments
   const getFilteredAppointments = () => {
     const now = new Date();
 
@@ -107,7 +108,7 @@ const PatientAppointmentsScreen = () => {
         const appDate = new Date(app.appointment_date);
         return (
           appDate >= now &&
-          (app.status === 'scheduled' || app.status === 'pending')
+          (app.status === 'confirmed' || app.status === 'pending')
         );
       });
     } else if (activeTab === 'completed') {
@@ -122,6 +123,7 @@ const PatientAppointmentsScreen = () => {
     return appointments;
   };
 
+  // Update the appointment item to show pending status differently
   const renderAppointmentItem = ({item}) => {
     const appointmentDate = new Date(item.appointment_date);
     const formattedDate = appointmentDate.toLocaleDateString('en-US', {
@@ -146,14 +148,18 @@ const PatientAppointmentsScreen = () => {
               styles.statusBadge,
               item.status === 'completed'
                 ? styles.completedBadge
-                : item.status === 'cancelled'
+                : item.status === 'cancelled' || item.status === 'canceled'
                 ? styles.cancelledBadge
-                : item.status === 'scheduled'
+                : item.status === 'confirmed'
                 ? styles.scheduledBadge
+                : item.status === 'pending'
+                ? styles.pendingBadge
                 : styles.pendingBadge,
             ]}>
             <Text style={styles.statusText}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              {item.status === 'pending'
+                ? 'Awaiting Approval'
+                : item.status.charAt(0).toUpperCase() + item.status.slice(1)}
             </Text>
           </View>
         </View>
@@ -178,7 +184,8 @@ const PatientAppointmentsScreen = () => {
             <Text style={styles.detailsText}>View Details</Text>
           </TouchableOpacity>
 
-          {activeTab === 'upcoming' && (
+          {/* Only allow cancellation of pending or confirmed appointments */}
+          {(item.status === 'pending' || item.status === 'confirmed') && (
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => cancelAppointment(item.id)}>

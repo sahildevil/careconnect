@@ -19,11 +19,13 @@ import {CustomButton} from '../../components';
 const DoctorHomeScreen = () => {
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+  const [pendingAppointments, setPendingAppointments] = useState([]);
   const [stats, setStats] = useState({
     today: 0,
     upcoming: 0,
     completed: 0,
     cancelled: 0,
+    pending: 0,
   });
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
@@ -31,6 +33,13 @@ const DoctorHomeScreen = () => {
 
   useEffect(() => {
     fetchAppointments();
+
+    // Add a refresh listener when the screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAppointments();
+    });
+
+    return unsubscribe;
   }, []);
 
   // Helper function to get date in YYYY-MM-DD format
@@ -96,6 +105,12 @@ const DoctorHomeScreen = () => {
           return isFutureAppointment && isActiveStatus;
         });
 
+        // Filter pending appointments
+        const pendingAppts = appointments.filter(
+          app => app.status === 'pending',
+        );
+        setPendingAppointments(pendingAppts);
+
         // Count completed and cancelled appointments
         const completedCount = appointments.filter(
           app => app.status === 'completed',
@@ -123,6 +138,7 @@ const DoctorHomeScreen = () => {
           upcoming: upcomingAppts.length,
           completed: completedCount,
           cancelled: cancelledCount,
+          pending: pendingCount, // Add this new stat
         });
       } else {
         console.error('Invalid response format or no appointments found');
@@ -271,10 +287,10 @@ const DoctorHomeScreen = () => {
                 <Text style={styles.statsNumber}>{stats.today}</Text>
                 <Text style={styles.statsLabel}>Today</Text>
               </View>
-              <View style={[styles.statsCard, {backgroundColor: '#FFE6E6'}]}>
-                <Icon name="time" size={24} color="#FF6B6B" />
-                <Text style={styles.statsNumber}>{stats.upcoming}</Text>
-                <Text style={styles.statsLabel}>Upcoming</Text>
+              <View style={[styles.statsCard, {backgroundColor: '#FFF8E1'}]}>
+                <Icon name="time-outline" size={24} color="#FFC107" />
+                <Text style={styles.statsNumber}>{stats.pending}</Text>
+                <Text style={styles.statsLabel}>Pending</Text>
               </View>
             </View>
             <View style={styles.statsRow}>
@@ -345,6 +361,25 @@ const DoctorHomeScreen = () => {
                 New appointments will appear here
               </Text>
             </View>
+          )}
+
+          {/* Pending Appointments */}
+          {stats.pending > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Pending Approval</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Appointments')}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </TouchableOpacity>
+              </View>
+
+              {pendingAppointments.slice(0, 3).map((appointment, index) => (
+                <React.Fragment key={appointment.id || index}>
+                  {renderAppointmentItem({item: appointment})}
+                </React.Fragment>
+              ))}
+            </>
           )}
         </ScrollView>
       )}
