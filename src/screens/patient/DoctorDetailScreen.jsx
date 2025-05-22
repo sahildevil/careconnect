@@ -20,16 +20,32 @@ const DoctorDetailScreen = () => {
   const [error, setError] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
-  const {doctorId} = route.params || {};
+  const {doctor: doctorFromParams, doctorId} = route.params || {};
 
   useEffect(() => {
-    fetchDoctorDetails(doctorId);
-  }, [doctorId]);
+    if (doctorFromParams) {
+      // If we received the full doctor object, use it directly
+      setDoctor(doctorFromParams);
+      setLoading(false);
+    } else if (doctorId) {
+      // If we only received the ID, fetch the details
+      fetchDoctorDetails(doctorId);
+    } else {
+      // No doctor data provided
+      setError(true);
+      setLoading(false);
+    }
+  }, [doctorId, doctorFromParams]);
 
-  const fetchDoctorDetails = async doctorId => {
+  const fetchDoctorDetails = async id => {
     try {
       setLoading(true);
-      const response = await doctorService.getDoctorById(doctorId);
+      // Add a check for valid ID before making the API call
+      if (!id || id === 'undefined') {
+        throw new Error('Invalid doctor ID');
+      }
+
+      const response = await doctorService.getDoctorById(id);
 
       if (response.success) {
         setDoctor(response.doctor);

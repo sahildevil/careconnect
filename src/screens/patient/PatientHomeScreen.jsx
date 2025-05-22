@@ -16,7 +16,11 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import {doctorService, appointmentService, authService} from '../../services/api';
+import {
+  doctorService,
+  appointmentService,
+  authService,
+} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import Geolocation from 'react-native-geolocation-service';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -77,54 +81,62 @@ const PatientHomeScreen = () => {
     if (!user || !user.id) {
       console.error('User not authenticated, cannot update location');
       Alert.alert(
-        "Authentication Required",
-        "Please log in to allow location sharing.",
-        [{ text: "OK" }]
+        'Authentication Required',
+        'Please log in to allow location sharing.',
+        [{text: 'OK'}],
       );
       return;
     }
-    
+
     try {
       if (Platform.OS === 'android') {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
-            title: "CareConn Location Permission",
-            message: "CareConn needs access to your location to find nearby doctors",
-            buttonNeutral: "Ask Me Later",
-            buttonNegative: "Cancel",
-            buttonPositive: "OK"
-          }
+            title: 'CareConn Location Permission',
+            message:
+              'CareConn needs access to your location to find nearby doctors',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
         );
-        
+
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log("Location permission granted");
+          console.log('Location permission granted');
           getAndSaveLocation();
         } else {
-          console.log("Location permission denied");
+          console.log('Location permission denied');
         }
       } else {
         // For iOS, we can directly call Geolocation which will prompt for permission if needed
         getAndSaveLocation();
       }
     } catch (err) {
-      console.warn("Error requesting location permission:", err);
+      console.warn('Error requesting location permission:', err);
     }
   };
-  
+
   // Get location and save it to database
   const getAndSaveLocation = () => {
-    console.log("Getting user location...");
+    console.log('Getting user location...');
     Geolocation.getCurrentPosition(
-      async (position) => {
-        console.log("Got position:", position);
+      async position => {
+        console.log('Got position:', position);
         const {latitude, longitude} = position.coords;
         try {
-          console.log('Updating location for user ID:', user.id, 'with latitude:', latitude, 'longitude:', longitude);
+          console.log(
+            'Updating location for user ID:',
+            user.id,
+            'with latitude:',
+            latitude,
+            'longitude:',
+            longitude,
+          );
           const response = await authService.updateUserLocation(user.id, {
             latitude,
             longitude,
-            last_location_update: new Date().toISOString()
+            last_location_update: new Date().toISOString(),
           });
           console.log('Location update response:', response);
           if (response.success) {
@@ -136,37 +148,38 @@ const PatientHomeScreen = () => {
           console.error('Error updating location:', error);
         }
       },
-      (error) => {
+      error => {
         // More detailed error logging
-        console.error('Error getting current location - code:', error.code, 'message:', error.message);
-        
+        console.error(
+          'Error getting current location - code:',
+          error.code,
+          'message:',
+          error.message,
+        );
+
         // Handle specific error codes
-        let message = "Failed to get your location. ";
-        switch(error.code) {
+        let message = 'Failed to get your location. ';
+        switch (error.code) {
           case 1: // PERMISSION_DENIED
-            message += "Location permission was denied.";
+            message += 'Location permission was denied.';
             break;
           case 2: // POSITION_UNAVAILABLE
-            message += "Location information is unavailable.";
+            message += 'Location information is unavailable.';
             break;
           case 3: // TIMEOUT
-            message += "The request to get user location timed out.";
+            message += 'The request to get user location timed out.';
             break;
           default:
             message += error.message;
         }
-        
-        Alert.alert(
-          "Location Error",
-          message,
-          [{ text: "OK" }]
-        );
+
+        Alert.alert('Location Error', message, [{text: 'OK'}]);
       },
       {
         enableHighAccuracy: true,
         timeout: 15000,
         maximumAge: 10000,
-      }
+      },
     );
   };
 
@@ -358,7 +371,41 @@ const PatientHomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {popularDoctors.map(doctor => renderDoctorItem({item: doctor}))}
+          {popularDoctors.map((doctor, index) => (
+            <TouchableOpacity
+              key={doctor.id} // Use doctor.id as key
+              style={styles.doctorCard}
+              onPress={() => navigation.navigate('DoctorDetail', {doctor})}>
+              <View style={styles.popularDoctorInfo}>
+                <View>
+                  <View style={styles.doctorStatus}>
+                    <View style={styles.statusDot}></View>
+                    <Text style={styles.doctorName}>Dr. {doctor.name}</Text>
+                  </View>
+                  <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+                </View>
+                <View style={styles.ratingContainer}>
+                  <Icon name="star" size={14} color="#FFD700" />
+                  <Text style={styles.rating}>{doctor.rating || '4.5'}</Text>
+                </View>
+              </View>
+              <View style={styles.appointmentDetails}>
+                <TouchableOpacity
+                  style={styles.appointmentButton}
+                  onPress={() =>
+                    navigation.navigate('BookAppointment', {doctor: doctor})
+                  }>
+                  <Text style={styles.appointmentButtonText}>Appointment</Text>
+                </TouchableOpacity>
+                <View style={styles.timeContainer}>
+                  <Icon name="time-outline" size={16} color="#888" />
+                  <Text style={styles.timeText}>
+                    {doctor.available_hours || '09:00 AM - 05:00 PM'}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       )}
     </View>
