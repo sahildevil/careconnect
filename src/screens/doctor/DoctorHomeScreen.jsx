@@ -33,32 +33,55 @@ const DoctorHomeScreen = () => {
     fetchAppointments();
   }, []);
 
+  // Improve the fetchAppointments function
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      console.log('Attempting to fetch doctor appointments...');
       const response = await appointmentService.getDoctorAppointments();
+      console.log('Appointments response:', response);
 
-      if (response.success) {
+      if (response.success && Array.isArray(response.appointments)) {
         const appointments = response.appointments;
+        console.log(`Received ${appointments.length} appointments from server`);
 
-        // Get today's date at midnight for comparison
+        // Get today's date without time component for fair comparison
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Get tomorrow's date at midnight
+        // Get tomorrow's date
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // Filter appointments for today
+        console.log(
+          'Filtering appointments for today:',
+          today.toISOString().split('T')[0],
+        );
+
+        // Filter appointments for today - more robust approach
         const todayAppts = appointments.filter(app => {
+          // Convert to date and remove time component
           const appDate = new Date(app.appointment_date);
-          return appDate >= today && appDate < tomorrow;
+          const appDateString = appDate.toISOString().split('T')[0];
+          const todayString = today.toISOString().split('T')[0];
+
+          // Compare date strings (YYYY-MM-DD format)
+          const isToday = appDateString === todayString;
+          if (isToday) {
+            console.log('Found appointment for today:', app.id, appDateString);
+          }
+          return isToday && app.status !== 'canceled' && app.status !== 'completed';
         });
 
         // Filter upcoming appointments (future dates, not today)
         const upcomingAppts = appointments.filter(app => {
           const appDate = new Date(app.appointment_date);
-          return appDate >= tomorrow;
+          appDate.setHours(0, 0, 0, 0);
+          return (
+            appDate > today &&
+            app.status !== 'canceled' &&
+            app.status !== 'completed'
+          );
         });
 
         // Count completed and cancelled appointments
@@ -66,8 +89,12 @@ const DoctorHomeScreen = () => {
           app => app.status === 'completed',
         ).length;
         const cancelledCount = appointments.filter(
-          app => app.status === 'cancelled',
+          app => app.status === 'canceled',
         ).length;
+
+        console.log(
+          `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming`,
+        );
 
         setTodayAppointments(todayAppts);
         setUpcomingAppointments(upcomingAppts);
@@ -77,6 +104,8 @@ const DoctorHomeScreen = () => {
           completed: completedCount,
           cancelled: cancelledCount,
         });
+      } else {
+        console.error('Invalid response format or no appointments found');
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
@@ -85,23 +114,33 @@ const DoctorHomeScreen = () => {
     }
   };
 
+  // Update the renderAppointmentItem function
   const renderAppointmentItem = ({item}) => {
     const appointmentTime = new Date(item.appointment_date).toLocaleTimeString(
       [],
       {hour: '2-digit', minute: '2-digit'},
     );
 
+    // Log the appointment to debug
+    console.log('Rendering appointment:', {
+      id: item.id,
+      date: item.appointment_date,
+      patientInfo: item.patients || 'No patient info',
+    });
+
     return (
       <View style={styles.appointmentCard}>
         <View style={styles.patientInfo}>
           <View style={styles.patientAvatar}>
             <Text style={styles.avatarText}>
-              {item.patient?.name?.charAt(0) || 'P'}
+              {/* Use patients (plural) instead of patient */}
+              {item.patients?.name?.charAt(0) || 'P'}
             </Text>
           </View>
           <View>
             <Text style={styles.patientName}>
-              {item.patient?.name || 'Patient'}
+              {/* Use patients (plural) instead of patient */}
+              {item.patients?.name || 'Patient'}
             </Text>
             <Text style={styles.appointmentType}>
               {item.appointment_type || 'Consultation'}

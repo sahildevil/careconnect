@@ -1,18 +1,16 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://192.168.1.8:3000/api';
+const API_URL = 'http://192.168.1.5:3000/api';
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000, // Increased timeout
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-// Update the request interceptor:
 
 // Add request interceptor to add auth token
 api.interceptors.request.use(
@@ -20,7 +18,6 @@ api.interceptors.request.use(
     try {
       const token = await AsyncStorage.getItem('token');
       if (token && token.length > 10) {
-        // Basic validation that it's a real token
         console.log('API: Adding auth token to request');
         config.headers.Authorization = `Bearer ${token}`;
       } else {
@@ -38,7 +35,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   error => {
-    // Log the error for debugging
     console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   },
@@ -49,13 +45,17 @@ export const authService = {
   login: async (email, password, userType) => {
     try {
       const response = await api.post('/auth/login', {
-        email: email.toLowerCase(), // Always lowercase email for consistency
+        email: email.toLowerCase(),
         password,
         userType,
       });
 
       if (response.data.success && response.data.token) {
         await AsyncStorage.setItem('token', response.data.token);
+        // Store user data if available
+        if (response.data.user) {
+          await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+        }
       }
       return response.data;
     } catch (error) {
@@ -67,14 +67,12 @@ export const authService = {
 
   register: async (userData, userType) => {
     try {
-      // Clean and sanitize data
       const sanitizedData = Object.fromEntries(
         Object.entries(userData).map(([key, value]) =>
           typeof value === 'string' ? [key, value.trim()] : [key, value],
         ),
       );
 
-      // Convert email to lowercase
       if (sanitizedData.email) {
         sanitizedData.email = sanitizedData.email.toLowerCase();
       }
@@ -108,8 +106,14 @@ export const authService = {
   logout: async () => {
     try {
       const response = await api.post('/auth/logout');
+      // Clear stored data
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
       return response.data;
     } catch (error) {
+      // Even if API call fails, clear local storage
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
       throw error.response
         ? error.response.data
         : {success: false, message: 'Network error'};
@@ -131,9 +135,8 @@ export const authService = {
 
   updateUserLocation: async (userId, location) => {
     try {
-      // Make sure we're sending the userId with the correct parameter name
       const locationData = {
-        userId: userId, // This needs to match what the server expects
+        userId: userId,
         latitude: location.latitude,
         longitude: location.longitude,
         last_location_update:
@@ -205,9 +208,20 @@ export const doctorService = {
     }
   },
 
-  checkOnboardingStatus: async () => {
+  checkOnboardingStatus: async (doctorId) => {
     try {
-      const response = await api.get(`/doctors/onboarding-status/${user.id}`);
+      // Fixed: Accept doctorId as parameter instead of using undefined 'user'
+      if (!doctorId) {
+        // Get doctor ID from AsyncStorage if not provided
+        const userString = await AsyncStorage.getItem('user');
+        if (!userString) {
+          throw new Error('User not authenticated');
+        }
+        const userData = JSON.parse(userString);
+        doctorId = userData.id;
+      }
+
+      const response = await api.get(`/doctors/onboarding-status/${doctorId}`);
       return response.data;
     } catch (error) {
       throw error.response ? error.response.data : new Error('Network error');
@@ -229,18 +243,42 @@ export const doctorService = {
 
 // Appointments services
 export const appointmentService = {
-  getDoctorAppointments: async () => {
+  getDoctorAppointments: async (doctorId = null) => {
     try {
-      const response = await api.get('/appointments/doctor');
+      let finalDoctorId = doctorId;
+      
+      // If no doctorId provided, get from AsyncStorage
+      if (!finalDoctorId) {
+        const userString = await AsyncStorage.getItem('user');
+        if (!userString) {
+          throw new Error('User not authenticated');
+        }
+
+        const userData = JSON.parse(userString);
+        if (!userData || !userData.id) {
+          throw new Error('User ID not found');
+        }
+        finalDoctorId = userData.id;
+      }
+
+      console.log('Fetching appointments for doctor ID:', finalDoctorId);
+      
+      const response = await api.get(
+        `/appointments/doctor?doctor_id=${finalDoctorId}`,
+      );
+      
+      console.log('Response status:', response.status);
+      console.log('Appointments found:', response.data?.appointments?.length || 0);
+      
       return response.data;
     } catch (error) {
+      console.error('Error in getDoctorAppointments:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
 
   getPatientAppointments: async () => {
     try {
-      // Get the user data from AsyncStorage
       const userString = await AsyncStorage.getItem('user');
       if (!userString) {
         throw new Error('User not authenticated');
@@ -251,7 +289,6 @@ export const appointmentService = {
         throw new Error('User ID not found');
       }
 
-      // Explicitly add the user_id as a query parameter
       const response = await api.get(
         `/appointments/patient?user_id=${userData.id}`,
       );
@@ -302,10 +339,7 @@ export const appointmentService = {
 
   getAvailableSlots: async (doctorId, date) => {
     try {
-      // Format date as YYYY-MM-DD
       const formattedDate = date.toISOString().split('T')[0];
-
-      // Include timezone info in the request
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       const response = await api.get(
