@@ -10,10 +10,15 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
+import Geolocation from 'react-native-geolocation-service';
+import { useAuth } from '../../context/AuthContext';
+import { calculateHaversineDistance, calculateRouteDistances } from '../../utils/geoUtils';
 
 const DoctorListScreen = () => {
   const [doctors, setDoctors] = useState([]);
@@ -22,13 +27,21 @@ const DoctorListScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [error, setError] = useState(null);
-
+  
+  // Add new state variables
+  const [userLocation, setUserLocation] = useState(null);
+  const [sortBy, setSortBy] = useState('distance'); // 'distance' or 'rating'
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [useRouteDistance, setUseRouteDistance] = useState(false);
+  
   const navigation = useNavigation();
   const route = useRoute();
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchDoctors();
-
+    // Get user location first (if possible)
+    getUserLocation();
+    
     // Check if specialty was passed as a param
     if (route.params?.specialty) {
       setSelectedSpecialty(route.params.specialty);
@@ -44,28 +57,102 @@ const DoctorListScreen = () => {
     if (doctors.length > 0) {
       filterDoctors();
     }
-  }, [searchQuery, selectedSpecialty, doctors]);
+  }, [searchQuery, selectedSpecialty, doctors, sortBy]);
+
+  const getUserLocation = async () => {
+    try {
+      // Check if we have stored user location
+      if (user && user.latitude && user.longitude) {
+        const location = {
+          latitude: parseFloat(user.latitude),
+          longitude: parseFloat(user.longitude)
+        };
+        console.log('Using stored user location:', location);
+        setUserLocation(location);
+        
+        // Fetch all doctors first
+        await fetchDoctors();
+      } else {
+        // Request location permission
+        requestLocationPermission();
+      }
+    } catch (error) {
+      console.error('Error getting user location:', error);
+      fetchDoctors();
+    }
+  };
+
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'CareConn needs access to your location to find nearby doctors',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getCurrentPosition();
+        } else {
+          console.log('Location permission denied');
+          fetchDoctors();
+        }
+      } else {
+        // iOS
+        getCurrentPosition();
+      }
+    } catch (err) {
+      console.error('Error requesting location permission:', err);
+      fetchDoctors();
+    }
+  };
+
+  const getCurrentPosition = () => {
+    Geolocation.getCurrentPosition(
+      position => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        };
+        console.log('Got current location:', location);
+        
+        setUserLocation(location);
+        fetchDoctors();
+      },
+      error => {
+        console.error('Error getting current location:', error);
+        fetchDoctors();
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
 
   const fetchDoctors = async () => {
     try {
       setLoading(true);
       setError(null);
+      
       const response = await doctorService.getAllDoctors();
 
       if (response.success) {
-        // Debug: print all specialties in the database
-        const specialtiesInDb = [...new Set(response.doctors.map(doc => doc.specialty))];
-        console.log('Specialties in database:', specialtiesInDb);
-        
         // Only show visible doctors
         const visibleDoctors = response.doctors.filter(doc => doc.is_visible !== false);
-        console.log(`Found ${visibleDoctors.length} visible doctors out of ${response.doctors.length}`);
+        console.log(`Found ${visibleDoctors.length} visible doctors`);
         
-        setDoctors(visibleDoctors);
-        setFilteredDoctors(visibleDoctors);
+        // If we have user location, calculate distances
+        if (userLocation) {
+          await calculateDistancesForDoctors(visibleDoctors);
+        } else {
+          setDoctors(visibleDoctors);
+          setFilteredDoctors(visibleDoctors);
+        }
       } else {
         setError('Failed to fetch doctors');
-        console.error('API returned failure:', response);
       }
     } catch (error) {
       setError('Error connecting to server');
@@ -75,14 +162,65 @@ const DoctorListScreen = () => {
     }
   };
 
-  const filterDoctors = () => {
-    let filtered = [...doctors];
+  const calculateDistancesForDoctors = async (doctorsList) => {
+    try {
+      setDistanceLoading(true);
+      
+      if (useRouteDistance) {
+        // Use Google Maps Distance Matrix API
+        const doctorsWithRouteDistances = await calculateRouteDistances(
+          userLocation, 
+          doctorsList
+        );
+        
+        if (doctorsWithRouteDistances.length > 0) {
+          setDoctors(doctorsWithRouteDistances);
+          filterDoctors(doctorsWithRouteDistances);
+        }
+      } else {
+        // Use Haversine formula (faster, less accurate)
+        const doctorsWithDistances = doctorsList.map(doctor => {
+          const distance = calculateHaversineDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            parseFloat(doctor.latitude || 0),
+            parseFloat(doctor.longitude || 0)
+          );
+          
+          return {
+            ...doctor,
+            distance,
+            distanceSource: 'haversine'
+          };
+        });
+        
+        // Sort by distance (null values at the end)
+        const sortedDoctors = doctorsWithDistances.sort((a, b) => {
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        });
+        
+        setDoctors(sortedDoctors);
+        filterDoctors(sortedDoctors);
+      }
+    } catch (error) {
+      console.error('Error calculating distances:', error);
+      setDoctors(doctorsList);
+      filterDoctors(doctorsList);
+    } finally {
+      setDistanceLoading(false);
+    }
+  };
 
-    // Filter by specialty - more flexible matching
+  const filterDoctors = (doctorsList = doctors) => {
+    let filtered = [...doctorsList];
+
+    // Filter by specialty
     if (selectedSpecialty) {
       filtered = filtered.filter(
         doctor => {
-          // Handle potential null values and normalize strings
+          // Your existing specialty filtering logic
           const docSpecialty = (doctor.specialty || '').trim().toLowerCase();
           const selectedSpec = selectedSpecialty.trim().toLowerCase();
           
@@ -108,12 +246,9 @@ const DoctorListScreen = () => {
             }
           }
           
-          // Log the comparison for debugging
-          console.log(`No match for: DB="${docSpecialty}" vs Selected="${selectedSpec}"`);
           return false;
         }
       );
-      console.log(`After specialty filter: ${filtered.length} doctors match "${selectedSpecialty}"`);
     }
 
     // Filter by search query
@@ -124,10 +259,49 @@ const DoctorListScreen = () => {
           (doctor.name || '').toLowerCase().includes(query) ||
           ((doctor.specialty || '').toLowerCase().includes(query)),
       );
-      console.log(`After search filter: ${filtered.length} doctors match "${searchQuery}"`);
+    }
+
+    // Sort by distance or rating
+    if (sortBy === 'distance') {
+      filtered.sort((a, b) => {
+        if (a.distance === null || a.distance === undefined) return 1;
+        if (b.distance === null || b.distance === undefined) return -1;
+        return a.distance - b.distance;
+      });
+    } else {
+      filtered.sort((a, b) => {
+        const ratingA = parseFloat(a.rating) || 0;
+        const ratingB = parseFloat(b.rating) || 0;
+        return ratingB - ratingA;
+      });
     }
 
     setFilteredDoctors(filtered);
+  };
+
+  const toggleSortBy = () => {
+    const newSortBy = sortBy === 'distance' ? 'rating' : 'distance';
+    setSortBy(newSortBy);
+  };
+
+  const toggleDistanceCalculation = async () => {
+    if (!userLocation) {
+      Alert.alert(
+        'Location Required',
+        'Please enable location services to use route distances',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Toggle between straight-line and route distance
+    const newValue = !useRouteDistance;
+    setUseRouteDistance(newValue);
+    
+    if (newValue && doctors.length > 0) {
+      // Recalculate using route distance
+      calculateDistancesForDoctors(doctors);
+    }
   };
 
   // List of specialties - make sure these match exactly with database values
@@ -135,11 +309,39 @@ const DoctorListScreen = () => {
     'Cardiology',
     'Dermatology',
     'Neurology',
-    'Orthopedics',  // Changed from 'Orthopedic' to match DoctorSignUp.jsx
+    'Orthopedics',
     'Pediatrics',
     'Dentist',
     'General Medicine',
   ];
+
+  const renderDistanceText = (item) => {
+    if (!item.distance) return null;
+    
+    // Format distance text
+    let distanceText;
+    if (item.distance < 1) {
+      distanceText = `${(item.distance * 1000).toFixed(0)}m`;
+    } else {
+      distanceText = `${item.distance.toFixed(1)}km`;
+    }
+    
+    // Add duration if available
+    if (item.duration) {
+      distanceText += ` • ${item.duration}`;
+    }
+    
+    return (
+      <View style={styles.distanceContainer}>
+        <Icon 
+          name={item.distanceSource === 'route' ? 'navigate' : 'location-outline'} 
+          size={14} 
+          color="#666" 
+        />
+        <Text style={styles.distanceText}>{distanceText}</Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -197,6 +399,52 @@ const DoctorListScreen = () => {
         />
       </View>
 
+      {/* Display sort and distance options when location is available */}
+      {userLocation && (
+        <View style={styles.controlsContainer}>
+          <TouchableOpacity 
+            style={styles.controlButton}
+            onPress={toggleSortBy}>
+            <Icon 
+              name={sortBy === 'distance' ? 'location-outline' : 'star-outline'} 
+              size={16} 
+              color="#0CB69B" 
+            />
+            <Text style={styles.controlButtonText}>
+              {sortBy === 'distance' ? 'By Distance' : 'By Rating'}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.controlButton,
+              useRouteDistance && styles.activeControlButton
+            ]}
+            onPress={toggleDistanceCalculation}>
+            <Icon 
+              name={useRouteDistance ? 'navigate' : 'location-outline'} 
+              size={16} 
+              color={useRouteDistance ? '#FFFFFF' : '#0CB69B'} 
+            />
+            <Text style={[
+              styles.controlButtonText,
+              useRouteDistance && styles.activeControlButtonText
+            ]}>
+              {useRouteDistance ? 'Route Distance' : 'Direct Distance'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {distanceLoading && (
+        <View style={styles.distanceLoadingBar}>
+          <ActivityIndicator size="small" color="#0CB69B" />
+          <Text style={styles.distanceLoadingText}>
+            Calculating distances...
+          </Text>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
@@ -240,9 +488,13 @@ const DoctorListScreen = () => {
                     </View>
                   </View>
                   <Text style={styles.specialtyText}>{item.specialty}</Text>
-                  <Text style={styles.experienceText}>
-                    {item.experience || '5'}+ years experience
-                  </Text>
+                  
+                  <View style={styles.infoRow}>
+                    <Text style={styles.experienceText}>
+                      {item.experience || '5'}+ years experience
+                    </Text>
+                    {renderDistanceText(item)}
+                  </View>
                 </View>
               </View>
 
@@ -493,6 +745,66 @@ const styles = StyleSheet.create({
   clearFilterText: {
     color: '#0CB69B',
     fontWeight: '500',
+  },
+  controlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
+  controlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f8f6',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+  },
+  activeControlButton: {
+    backgroundColor: '#0CB69B',
+  },
+  controlButtonText: {
+    color: '#0CB69B',
+    marginLeft: 5,
+    fontWeight: '500',
+    fontSize: 12,
+  },
+  activeControlButtonText: {
+    color: '#FFFFFF',
+  },
+  distanceLoadingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f8f6',
+    padding: 8,
+    marginHorizontal: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  distanceLoadingText: {
+    color: '#0CB69B',
+    marginLeft: 8,
+    fontSize: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  distanceText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
   },
 });
 
