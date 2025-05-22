@@ -27,6 +27,7 @@ import DoctorProfileScreen from '../screens/doctor/DoctorProfileScreen';
 import DoctorScheduleScreen from '../screens/doctor/DoctorScheduleScreen';
 import DoctorTabNavigator from './DoctorTabNavigator';
 import AppointmentDetailScreen from '../screens/shared/AppointmentDetailScreen';
+import DoctorOnboardingScreen from '../screens/doctor/DoctorOnboardingScreen';
 
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
@@ -84,6 +85,10 @@ const DoctorNavigator = () => {
       }}>
       <DoctorStack.Screen name="DoctorTabs" component={DoctorTabNavigator} />
       <DoctorStack.Screen
+        name="DoctorOnboarding"
+        component={DoctorOnboardingScreen}
+      />
+      <DoctorStack.Screen
         name="DoctorSchedule"
         component={DoctorScheduleScreen}
       />
@@ -96,7 +101,15 @@ const DoctorNavigator = () => {
 };
 
 const AppNavigator = () => {
-  const {isAuthenticated, loading, userType} = useAuth();
+  const {isAuthenticated, loading, userType, user} = useAuth();
+
+  // Add a check for doctor needing onboarding
+  const needsDoctorOnboarding = React.useMemo(() => {
+    if (isAuthenticated && userType === 'doctor' && user) {
+      return !user.profile || user.profile.onboarding_complete === false;
+    }
+    return false;
+  }, [isAuthenticated, userType, user]);
 
   if (loading) {
     return (
@@ -106,12 +119,15 @@ const AppNavigator = () => {
     );
   }
 
-  // Determine the initial route based on authentication state
-  const initialRoute = isAuthenticated
-    ? userType === 'doctor'
-      ? 'DoctorFlow'
-      : 'PatientFlow'
-    : 'Auth';
+  // Determine the initial route based on authentication and onboarding state
+  let initialRoute = 'Auth';
+  if (isAuthenticated) {
+    if (userType === 'doctor') {
+      initialRoute = needsDoctorOnboarding ? 'DoctorOnboarding' : 'DoctorFlow';
+    } else {
+      initialRoute = 'PatientFlow';
+    }
+  }
 
   return (
     <Stack.Navigator
@@ -123,6 +139,10 @@ const AppNavigator = () => {
       <Stack.Screen name="Auth" component={AuthNavigator} />
       <Stack.Screen name="DoctorFlow" component={DoctorNavigator} />
       <Stack.Screen name="PatientFlow" component={PatientNavigator} />
+      <Stack.Screen
+        name="DoctorOnboarding"
+        component={DoctorOnboardingScreen}
+      />
     </Stack.Navigator>
   );
 };

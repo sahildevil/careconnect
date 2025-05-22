@@ -1,6 +1,12 @@
-import React, {createContext, useState, useContext, useEffect} from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {authService} from '../services/api';
+import {authService, doctorService} from '../services/api';
 
 const AuthContext = createContext();
 
@@ -32,31 +38,64 @@ export const AuthProvider = ({children}) => {
     }
   };
 
-  const login = async (email, password, type) => {
-    try {
-      setError(null);
-      setLoading(true);
+  // Update the checkDoctorOnboarding function
+  const checkDoctorOnboarding = useCallback(async userData => {
+    if (userData?.user_type === 'doctor') {
+      try {
+        // Check if the profile data exists and if onboarding_complete is false
+        // This handles both cases: no profile data or profile with onboarding_complete=false
+        if (
+          !userData.profile ||
+          userData.profile.onboarding_complete === false
+        ) {
+          return true; // Needs onboarding
+        }
+        return false; // Doesn't need onboarding
+      } catch (error) {
+        console.error('Error checking doctor onboarding status:', error);
+        return false;
+      }
+    }
+    return false;
+  }, []);
 
-      const response = await authService.login(email, password, type);
+  // Update the login function
+  const login = async (email, password, userType) => {
+    try {
+      setLoading(true);
+      const response = await authService.login(email, password, userType);
 
       if (response.success) {
         const userData = response.user;
-        const token = response.session.access_token;
 
-        // Store user data and token
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
-        await AsyncStorage.setItem('token', token);
-        await AsyncStorage.setItem('userType', type);
+        // Check if doctor needs onboarding before setting user state
+        if (userData.user_type === 'doctor') {
+          const needsOnboarding = await checkDoctorOnboarding(userData);
 
+          // Still set user data in state, but return special flag for navigation
+          setUser(userData);
+          setUserType(userData.user_type);
+
+          if (needsOnboarding) {
+            AsyncStorage.setItem('user', JSON.stringify(userData));
+            AsyncStorage.setItem('userType', userData.user_type);
+            setLoading(false);
+            return {success: true, needsOnboarding: true};
+          }
+        }
+
+        // For patients or doctors who don't need onboarding
         setUser(userData);
-        setUserType(type);
-        return true;
+        setUserType(userData.user_type);
+        AsyncStorage.setItem('user', JSON.stringify(userData));
+        AsyncStorage.setItem('userType', userData.user_type);
       }
-    } catch (error) {
-      setError(error.message || 'Login failed');
-      return false;
-    } finally {
+
       setLoading(false);
+      return response;
+    } catch (error) {
+      setLoading(false);
+      throw error;
     }
   };
 
@@ -118,6 +157,12 @@ export const AuthProvider = ({children}) => {
     }
   };
 
+  // Add a function to update the user data
+  const updateUser = userData => {
+    setUser(userData);
+    AsyncStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const value = {
     user,
     userType,
@@ -128,6 +173,7 @@ export const AuthProvider = ({children}) => {
     signUp,
     logout,
     resetPassword,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

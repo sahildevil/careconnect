@@ -38,12 +38,30 @@ const Login = ({navigation, route}) => {
 
     setLoading(true);
     try {
-      const success = await login(email, password, userType);
+      const response = await login(email, password, userType);
 
-      if (!success) {
-        Alert.alert('Login Failed', 'Invalid email or password');
+      if (response.success) {
+        if (userType === 'doctor' && response.needsOnboarding) {
+          console.log('Redirecting to onboarding...');
+          // Use replace instead of navigate to prevent going back to login
+          navigation.replace('DoctorOnboarding');
+        } else {
+          // Normal login flow
+          if (userType === 'doctor') {
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'DoctorHome'}],
+            });
+          } else {
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'PatientHome'}],
+            });
+          }
+        }
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Login Failed', error.message || 'Something went wrong');
     } finally {
       setLoading(false);

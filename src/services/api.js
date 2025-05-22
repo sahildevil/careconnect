@@ -153,6 +153,27 @@ export const doctorService = {
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
+
+  checkOnboardingStatus: async () => {
+    try {
+      const response = await api.get(`/doctors/onboarding-status/${user.id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  completeOnboarding: async onboardingData => {
+    try {
+      const response = await api.post(
+        '/doctors/complete-onboarding',
+        onboardingData,
+      );
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
 };
 
 // Appointments services
