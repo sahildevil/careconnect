@@ -12,8 +12,10 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
+import {useAuth} from '../../context/AuthContext';
 
 const PatientAppointmentsScreen = () => {
+  const {user} = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -21,19 +23,34 @@ const PatientAppointmentsScreen = () => {
 
   useEffect(() => {
     fetchAppointments();
+
+    // Refresh appointments when the screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchAppointments();
+    });
+
+    return unsubscribe;
   }, []);
 
   const fetchAppointments = async () => {
     try {
+      if (!user || !user.id) {
+        console.error('No user ID available for fetching appointments');
+        Alert.alert('Error', 'Please login again to view your appointments');
+        return;
+      }
+
       setLoading(true);
       const response = await appointmentService.getPatientAppointments();
 
       if (response.success) {
+        console.log(`Loaded ${response.appointments.length} appointments`);
         setAppointments(response.appointments);
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      Alert.alert('Error', 'Failed to load appointments');
+      const errorMessage = error.message || 'Failed to load appointments';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -88,12 +105,18 @@ const PatientAppointmentsScreen = () => {
     if (activeTab === 'upcoming') {
       return appointments.filter(app => {
         const appDate = new Date(app.appointment_date);
-        return appDate >= now && app.status !== 'cancelled';
+        return (
+          appDate >= now &&
+          (app.status === 'scheduled' || app.status === 'pending')
+        );
       });
     } else if (activeTab === 'completed') {
       return appointments.filter(app => app.status === 'completed');
     } else if (activeTab === 'cancelled') {
-      return appointments.filter(app => app.status === 'cancelled');
+      // Handle both spellings for backwards compatibility
+      return appointments.filter(
+        app => app.status === 'canceled' || app.status === 'cancelled',
+      );
     }
 
     return appointments;
@@ -125,7 +148,9 @@ const PatientAppointmentsScreen = () => {
                 ? styles.completedBadge
                 : item.status === 'cancelled'
                 ? styles.cancelledBadge
-                : styles.scheduledBadge,
+                : item.status === 'scheduled'
+                ? styles.scheduledBadge
+                : styles.pendingBadge,
             ]}>
             <Text style={styles.statusText}>
               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
@@ -331,6 +356,9 @@ const styles = StyleSheet.create({
   },
   cancelledBadge: {
     backgroundColor: '#ffebee',
+  },
+  pendingBadge: {
+    backgroundColor: '#fff8e1',
   },
   statusText: {
     fontSize: 12,

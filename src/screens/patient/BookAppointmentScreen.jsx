@@ -129,16 +129,21 @@ const BookAppointmentScreen = () => {
       );
 
       if (response.success) {
-        Alert.alert('Success', 'Appointment booked successfully!', [
-          {
-            text: 'View Appointments',
-            onPress: () => navigation.navigate('Appointments'),
-          },
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        Alert.alert(
+          'Appointment Scheduled',
+          'Your appointment has been successfully scheduled with Dr. ' +
+            doctor.name,
+          [
+            {
+              text: 'View Appointments',
+              onPress: () => navigation.navigate('Appointments'),
+            },
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ],
+        );
       }
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to book appointment');

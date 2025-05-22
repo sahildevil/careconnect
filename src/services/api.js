@@ -122,7 +122,8 @@ export const authService = {
         userId: userId, // This needs to match what the server expects
         latitude: location.latitude,
         longitude: location.longitude,
-        last_location_update: location.last_location_update || new Date().toISOString(),
+        last_location_update:
+          location.last_location_update || new Date().toISOString(),
       };
 
       const response = await api.post('/auth/update-location', locationData);
@@ -225,9 +226,25 @@ export const appointmentService = {
 
   getPatientAppointments: async () => {
     try {
-      const response = await api.get('/appointments/patient');
+      // Get the user data from AsyncStorage
+      const userString = await AsyncStorage.getItem('user');
+      if (!userString) {
+        throw new Error('User not authenticated');
+      }
+
+      const userData = JSON.parse(userString);
+      if (!userData || !userData.id) {
+        throw new Error('User ID not found');
+      }
+
+      // Explicitly add the user_id as a query parameter
+      const response = await api.get(
+        `/appointments/patient?user_id=${userData.id}`,
+      );
+      console.log('Fetching appointments for user:', userData.id);
       return response.data;
     } catch (error) {
+      console.error('Error in getPatientAppointments:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
@@ -255,6 +272,16 @@ export const appointmentService = {
       const response = await api.put(`/appointments/${id}/cancel`);
       return response.data;
     } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  getAppointmentById: async appointmentId => {
+    try {
+      const response = await api.get(`/appointments/${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching appointment details:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
