@@ -55,7 +55,7 @@ const Login = ({navigation, route}) => {
           } else {
             navigation.reset({
               index: 0,
-              routes: [{name: 'PatientHome'}],
+              routes: [{name: 'Home'}],
             });
           }
         }

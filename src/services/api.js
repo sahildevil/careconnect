@@ -304,8 +304,17 @@ export const appointmentService = {
     try {
       // Format date as YYYY-MM-DD
       const formattedDate = date.toISOString().split('T')[0];
+
+      // Include timezone info in the request
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       const response = await api.get(
-        `/appointments/available-slots/${doctorId}?date=${formattedDate}`,
+        `/appointments/available-slots/${doctorId}?date=${formattedDate}&timezone=${userTimezone}`,
+      );
+
+      console.log(
+        'API: Got booked slots from server:',
+        response.data.bookedSlots,
       );
       return response.data;
     } catch (error) {

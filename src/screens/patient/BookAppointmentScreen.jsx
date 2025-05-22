@@ -21,6 +21,43 @@ import {
   HeaderComponent,
 } from '../../components';
 
+// Helper function to convert local time to UTC
+const convertLocalTimeToUTC = (date, timeStr) => {
+  const [hours, minutes] = timeStr.split(':');
+
+  // Create a date object with the local date and time
+  const localDate = new Date(date);
+  localDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+  // Get UTC components
+  const utcHours = localDate.getUTCHours();
+  const utcMinutes = localDate.getUTCMinutes();
+
+  // Return formatted UTC time
+  return `${utcHours}:${utcMinutes === 0 ? '00' : utcMinutes}`;
+};
+
+// Helper function to convert UTC time to local
+const convertUTCToLocalTime = (date, utcTimeStr) => {
+  const [hours, minutes] = utcTimeStr.split(':');
+
+  // Create a date object with the given date and UTC time
+  const utcDate = new Date(date);
+  utcDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+  // Get local components
+  const localHours = utcDate.getHours();
+  const localMinutes = utcDate.getMinutes();
+
+  // Format hours for 12-hour clock
+  let hour12 = localHours % 12;
+  if (hour12 === 0) hour12 = 12;
+  const period = localHours >= 12 ? 'PM' : 'AM';
+
+  // Return formatted local time
+  return `${hour12}:${localMinutes === 0 ? '00' : localMinutes} ${period}`;
+};
+
 // Helper function to generate time slots
 const generateTimeSlots = (startHour = 9, endHour = 17) => {
   const slots = [];
@@ -100,8 +137,47 @@ const BookAppointmentScreen = () => {
       );
 
       if (response.success) {
-        setBookedSlots(response.bookedSlots);
-        console.log('Booked slots:', response.bookedSlots);
+        console.log(
+          'Server returned booked slots (UTC):',
+          response.bookedSlots,
+        );
+
+        // Convert UTC booked slots to local time formats that match your UI
+        const localBookedTimes = [];
+
+        response.bookedSlots.forEach(utcTime => {
+          // Parse the UTC time (format: "5:30")
+          const [utcHours, utcMinutes] = utcTime
+            .split(':')
+            .map(part => parseInt(part, 10));
+
+          // Create a new date object with the selected date
+          const localDate = new Date(date);
+
+          // Set the UTC hours and minutes
+          localDate.setUTCHours(utcHours, utcMinutes, 0, 0);
+
+          // Format to match your UI time format (e.g., "11:00 AM")
+          let localHour = localDate.getHours();
+          const localMinute = localDate.getMinutes();
+          const period = localHour >= 12 ? 'PM' : 'AM';
+
+          // Convert to 12-hour format
+          localHour = localHour % 12;
+          if (localHour === 0) localHour = 12;
+
+          const formattedLocalTime = `${localHour}:${
+            localMinute === 0 ? '00' : localMinute
+          } ${period}`;
+
+          console.log(
+            `Converting UTC ${utcTime} to local time: ${formattedLocalTime}`,
+          );
+          localBookedTimes.push(formattedLocalTime);
+        });
+
+        console.log('Local booked times to block in UI:', localBookedTimes);
+        setBookedSlots(localBookedTimes);
       }
     } catch (error) {
       console.error('Error fetching booked slots:', error);
@@ -128,7 +204,7 @@ const BookAppointmentScreen = () => {
     try {
       setLoading(true);
 
-      // Convert date and time to appointment_date
+      // Convert the selected local time to a UTC appointment date
       const appointmentDate = new Date(selectedDate);
       const [timeStr, period] = selectedTime.split(' ');
       const [hours, minutes] = timeStr.split(':');
@@ -138,12 +214,17 @@ const BookAppointmentScreen = () => {
       if (period === 'PM' && hour !== 12) hour += 12;
       if (period === 'AM' && hour === 12) hour = 0;
 
+      // Set the hours and minutes in the local date object
       appointmentDate.setHours(hour, parseInt(minutes), 0, 0);
 
+      // Log appointment date in local timezone for debugging
+      console.log('Local appointment date:', appointmentDate.toString());
+      console.log('UTC appointment date:', appointmentDate.toISOString());
+
       const appointmentData = {
-        patient_id: user.id, // Changed from user_id to patient_id
+        patient_id: user.id,
         doctor_id: doctor.id,
-        appointment_date: appointmentDate.toISOString(),
+        appointment_date: appointmentDate.toISOString(), // This sends the date in UTC
         reason: reason,
         appointment_type: 'consultation',
       };
@@ -154,17 +235,11 @@ const BookAppointmentScreen = () => {
       );
 
       if (response.success) {
-        // Add the newly booked slot to the list of booked slots
-        const [timeStr, period] = selectedTime.split(' ');
-        const [hours, minutes] = timeStr.split(':');
-        let hour = parseInt(hours);
-
-        // Convert to 24-hour format
-        if (period === 'PM' && hour !== 12) hour += 12;
-        if (period === 'AM' && hour === 12) hour = 0;
-
-        const newBookedSlot = `${hour}:${minutes === '00' ? '00' : '30'}`;
-        setBookedSlots([...bookedSlots, newBookedSlot]);
+        // When booking is successful, add the selected time to the booked slots
+        // to immediately update the UI without requiring a refresh
+        if (!bookedSlots.includes(selectedTime)) {
+          setBookedSlots([...bookedSlots, selectedTime]);
+        }
 
         Alert.alert(
           'Appointment Scheduled',
@@ -305,17 +380,13 @@ const BookAppointmentScreen = () => {
 
                 <View style={styles.timeSlotContainer}>
                   {timeSlots.map((time, index) => {
-                    // Check if this slot is already booked
-                    const [timeStr, period] = time.split(' ');
-                    const [hours, minutes] = timeStr.split(':');
-                    let hour = parseInt(hours);
+                    // Check if this slot is already booked by comparing directly with the bookedSlots array
+                    const isBooked = bookedSlots.includes(time);
 
-                    // Convert to 24-hour format for comparison with server data
-                    if (period === 'PM' && hour !== 12) hour += 12;
-                    if (period === 'AM' && hour === 12) hour = 0;
-
-                    const timeKey = `${hour}:${minutes === '00' ? '00' : '30'}`;
-                    const isBooked = bookedSlots.includes(timeKey);
+                    // Add debugging to see what's being compared
+                    console.log(
+                      `Checking time slot: ${time}, isBooked: ${isBooked}`,
+                    );
 
                     return (
                       <TouchableOpacity
