@@ -75,16 +75,16 @@ export const AuthProvider = ({children}) => {
 
       if (response.success) {
         const userData = response.user;
-        
+
         // Store the token securely
         if (response.token) {
           await AsyncStorage.setItem('token', response.token);
         }
-        
+
         // Save user data to AsyncStorage
         await AsyncStorage.setItem('user', JSON.stringify(userData));
         await AsyncStorage.setItem('userType', userData.user_type);
-        
+
         console.log('User data saved to storage after login:', userData.id);
 
         // Check if doctor needs onboarding before setting user state
@@ -147,7 +147,7 @@ export const AuthProvider = ({children}) => {
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('userType');
-      
+
       console.log('User data cleared from storage after logout');
 
       setUser(null);

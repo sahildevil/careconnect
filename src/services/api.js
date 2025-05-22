@@ -19,7 +19,8 @@ api.interceptors.request.use(
   async config => {
     try {
       const token = await AsyncStorage.getItem('token');
-      if (token && token.length > 10) { // Basic validation that it's a real token
+      if (token && token.length > 10) {
+        // Basic validation that it's a real token
         console.log('API: Adding auth token to request');
         config.headers.Authorization = `Bearer ${token}`;
       } else {
@@ -53,9 +54,9 @@ export const authService = {
         userType,
       });
 
-          if (response.data.success && response.data.token) {
-      await AsyncStorage.setItem('token', response.data.token);
-    }
+      if (response.data.success && response.data.token) {
+        await AsyncStorage.setItem('token', response.data.token);
+      }
       return response.data;
     } catch (error) {
       throw error.response
@@ -295,6 +296,20 @@ export const appointmentService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching appointment details:', error);
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  getAvailableSlots: async (doctorId, date) => {
+    try {
+      // Format date as YYYY-MM-DD
+      const formattedDate = date.toISOString().split('T')[0];
+      const response = await api.get(
+        `/appointments/available-slots/${doctorId}?date=${formattedDate}`,
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },

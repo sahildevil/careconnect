@@ -47,6 +47,8 @@ const BookAppointmentScreen = () => {
   const [loading, setLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -73,7 +75,7 @@ const BookAppointmentScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && doctor?.id) {
       // Generate time slots based on selected date
       const day = selectedDate.getDay();
 
@@ -83,8 +85,31 @@ const BookAppointmentScreen = () => {
 
       setTimeSlots(slots);
       setSelectedTime(null); // Reset selected time when date changes
+
+      // Fetch booked slots for this doctor on this date
+      fetchBookedSlots(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, doctor?.id]);
+
+  const fetchBookedSlots = async date => {
+    try {
+      setLoadingSlots(true);
+      const response = await appointmentService.getAvailableSlots(
+        doctor.id,
+        date,
+      );
+
+      if (response.success) {
+        setBookedSlots(response.bookedSlots);
+        console.log('Booked slots:', response.bookedSlots);
+      }
+    } catch (error) {
+      console.error('Error fetching booked slots:', error);
+      // Don't show an alert here, just log the error to avoid interrupting UX
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
 
   const handleDateSelection = date => {
     setSelectedDate(date);
@@ -129,6 +154,18 @@ const BookAppointmentScreen = () => {
       );
 
       if (response.success) {
+        // Add the newly booked slot to the list of booked slots
+        const [timeStr, period] = selectedTime.split(' ');
+        const [hours, minutes] = timeStr.split(':');
+        let hour = parseInt(hours);
+
+        // Convert to 24-hour format
+        if (period === 'PM' && hour !== 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+
+        const newBookedSlot = `${hour}:${minutes === '00' ? '00' : '30'}`;
+        setBookedSlots([...bookedSlots, newBookedSlot]);
+
         Alert.alert(
           'Appointment Scheduled',
           'Your appointment has been successfully scheduled with Dr. ' +
@@ -159,6 +196,13 @@ const BookAppointmentScreen = () => {
       date: date.getDate(),
       month: date.toLocaleString('default', {month: 'short'}),
     };
+  };
+
+  // Add this function to get the latest slot availability
+  const refreshSlotAvailability = () => {
+    if (selectedDate) {
+      fetchBookedSlots(selectedDate);
+    }
   };
 
   return (
@@ -239,25 +283,66 @@ const BookAppointmentScreen = () => {
         {selectedDate && (
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Select Time</Text>
-            <View style={styles.timeSlotContainer}>
-              {timeSlots.map((time, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.timeSlot,
-                    selectedTime === time && styles.selectedTimeSlot,
-                  ]}
-                  onPress={() => handleTimeSelection(time)}>
-                  <Text
-                    style={[
-                      styles.timeSlotText,
-                      selectedTime === time && styles.selectedTimeSlotText,
-                    ]}>
-                    {time}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+
+            {loadingSlots ? (
+              <View style={styles.loadingSlots}>
+                <ActivityIndicator size="small" color="#0CB69B" />
+                <Text style={{marginTop: 10, color: '#666'}}>
+                  Checking available slots...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Add a refresh button above the time slots */}
+                <View style={styles.refreshContainer}>
+                  <TouchableOpacity
+                    style={styles.refreshButton}
+                    onPress={refreshSlotAvailability}>
+                    <Icon name="refresh" size={16} color="#0CB69B" />
+                    <Text style={styles.refreshText}>Refresh availability</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.timeSlotContainer}>
+                  {timeSlots.map((time, index) => {
+                    // Check if this slot is already booked
+                    const [timeStr, period] = time.split(' ');
+                    const [hours, minutes] = timeStr.split(':');
+                    let hour = parseInt(hours);
+
+                    // Convert to 24-hour format for comparison with server data
+                    if (period === 'PM' && hour !== 12) hour += 12;
+                    if (period === 'AM' && hour === 12) hour = 0;
+
+                    const timeKey = `${hour}:${minutes === '00' ? '00' : '30'}`;
+                    const isBooked = bookedSlots.includes(timeKey);
+
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.timeSlot,
+                          selectedTime === time && styles.selectedTimeSlot,
+                          isBooked && styles.bookedTimeSlot,
+                        ]}
+                        onPress={() => !isBooked && handleTimeSelection(time)}
+                        disabled={isBooked}>
+                        <Text
+                          style={[
+                            styles.timeSlotText,
+                            selectedTime === time &&
+                              styles.selectedTimeSlotText,
+                            isBooked && styles.bookedTimeSlotText,
+                          ]}>
+                          {time}
+                          {isBooked && ' 🔒'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
           </View>
         )}
 
@@ -448,12 +533,21 @@ const styles = StyleSheet.create({
   selectedTimeSlot: {
     backgroundColor: '#0CB69B',
   },
+  bookedTimeSlot: {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#ddd',
+    borderWidth: 1,
+    opacity: 0.7,
+  },
   timeSlotText: {
     fontSize: 14,
     color: '#333',
   },
   selectedTimeSlotText: {
     color: '#fff',
+  },
+  bookedTimeSlotText: {
+    color: '#999',
   },
   reasonInput: {
     backgroundColor: '#F5F5F5',
@@ -509,6 +603,26 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
+  },
+  loadingSlots: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  refreshContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#E6F8F6',
+  },
+  refreshText: {
+    marginLeft: 5,
+    color: '#0CB69B',
+    fontSize: 14,
   },
 });
 
