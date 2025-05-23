@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {authService, doctorService} from '../services/api';
-import { notificationService } from '../services/notifications';
+import {notificationService} from '../services/notifications';
 
 const AuthContext = createContext();
 
@@ -233,7 +233,7 @@ export const AuthProvider = ({children}) => {
           setUserType(userData.user_type);
           await AsyncStorage.setItem('user', JSON.stringify(userData));
           await AsyncStorage.setItem('userType', userData.user_type);
-          
+
           // Register device for notifications after authentication
           await notificationService.onUserAuthenticated();
         }

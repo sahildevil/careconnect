@@ -45,9 +45,9 @@ const AppointmentDetailScreen = () => {
           'Appointment Reminder',
           'Your appointment is in 1 hour. Would you like directions to the clinic?',
           [
-            { text: 'Later', style: 'cancel' },
-            { text: 'Get Directions', onPress: handleGetDirections }
-          ]
+            {text: 'Later', style: 'cancel'},
+            {text: 'Get Directions', onPress: handleGetDirections},
+          ],
         );
       }, 500);
     }
