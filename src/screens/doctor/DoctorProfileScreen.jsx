@@ -152,12 +152,12 @@ const DoctorProfileScreen = () => {
               )}
             </View>
 
-            <View style={styles.infoField}>
+            {/* <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Email</Text>
               <Text style={styles.fieldValue}>{email}</Text>
-            </View>
+            </View> */}
 
-            <View style={styles.infoField}>
+            {/* <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Phone</Text>
               {isEditing ? (
                 <TextInput
@@ -170,7 +170,7 @@ const DoctorProfileScreen = () => {
               ) : (
                 <Text style={styles.fieldValue}>{phone || 'Not provided'}</Text>
               )}
-            </View>
+            </View> */}
 
             <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Specialty</Text>

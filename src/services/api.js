@@ -255,6 +255,27 @@ export const doctorService = {
     }
   },
 
+  getDoctorProfile: async () => {
+  try {
+    // Get current user from storage
+    const userString = await AsyncStorage.getItem('user');
+    if (!userString) {
+      throw new Error('User not authenticated');
+    }
+    
+    const userData = JSON.parse(userString);
+    if (!userData || !userData.id) {
+      throw new Error('User ID not found');
+    }
+    
+    // Use the existing getDoctorById method
+    const response = await api.get(`/doctors/${userData.id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+},
+
   updateDoctorProfile: async data => {
     try {
       const response = await api.put('/doctors/profile', data);
