@@ -2,12 +2,10 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, {AndroidImportance} from '@notifee/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform} from 'react-native';
-import axios from 'axios'; // Import axios directly
+import axios from 'axios';
 
-// Import the API base URL from your environment or config
-const API_URL = 'http://192.168.1.8:3000/api'; // Replace with your actual server URL
+const API_URL = 'http://192.168.1.5:3000/api';
 
-// Create an API instance specifically for notifications
 const notificationApi = axios.create({
   baseURL: API_URL,
   timeout: 10000,
@@ -33,9 +31,14 @@ notificationApi.interceptors.request.use(
 );
 
 class NotificationService {
-  // Initialize the service
+  // Initialize the service (Android only)
   async init() {
     try {
+      // Only for Android
+      if (Platform.OS !== 'android') {
+        return false;
+      }
+
       // Request permission
       const authStatus = await messaging().requestPermission();
       const enabled =
@@ -50,8 +53,8 @@ class NotificationService {
       // Register handlers
       this.registerMessageHandlers();
 
-      // Register the device token with the server
-      await this.registerDeviceToken();
+      // Get and store FCM token but don't register with server yet
+      await this.getFCMToken();
 
       return true;
     } catch (error) {
@@ -60,37 +63,68 @@ class NotificationService {
     }
   }
 
-  // Register FCM token with our server
-  async registerDeviceToken() {
+  // Get FCM token and store locally (don't register with server yet)
+  async getFCMToken() {
     try {
-      // Get the token
       const token = await messaging().getToken();
-      console.log('FCM token:', token);
-
+      console.log('FCM token obtained:', token);
+      
       // Store this token locally
       await AsyncStorage.setItem('fcmToken', token);
 
-      // Register with our server
+      // Listen for token refresh
+      return messaging().onTokenRefresh(async newToken => {
+        console.log('FCM token refreshed:', newToken);
+        await AsyncStorage.setItem('fcmToken', newToken);
+        
+        // Try to register the new token if user is authenticated
+        await this.registerDeviceTokenIfAuthenticated();
+      });
+    } catch (error) {
+      console.error('Failed to get FCM token:', error);
+    }
+  }
+
+  // Register device token only if user is authenticated
+  async registerDeviceTokenIfAuthenticated() {
+    try {
+      // Check if user is authenticated
+      const authToken = await AsyncStorage.getItem('token');
+      if (!authToken) {
+        console.log('User not authenticated, skipping device registration');
+        return;
+      }
+
+      // Get stored FCM token
+      const fcmToken = await AsyncStorage.getItem('fcmToken');
+      if (!fcmToken) {
+        console.log('No FCM token available');
+        return;
+      }
+
+      // Register with server
       const response = await notificationApi.post(
         '/notifications/register-device',
         {
-          token,
-          device_type: Platform.OS, // 'ios' or 'android'
+          token: fcmToken,
+          device_type: 'android',
         },
       );
 
       console.log('Device registered for notifications:', response.data);
-
-      // Listen for token refresh
-      return messaging().onTokenRefresh(async newToken => {
-        await AsyncStorage.setItem('fcmToken', newToken);
-        await notificationApi.post('/notifications/register-device', {
-          token: newToken,
-          device_type: Platform.OS,
-        });
-      });
     } catch (error) {
       console.error('Failed to register device token:', error);
+      // Don't throw error, just log it
+    }
+  }
+
+  // Call this method after successful login
+  async registerDeviceAfterLogin() {
+    try {
+      console.log('Registering device after login...');
+      await this.registerDeviceTokenIfAuthenticated();
+    } catch (error) {
+      console.error('Failed to register device after login:', error);
     }
   }
 
@@ -108,17 +142,21 @@ class NotificationService {
       await this.displayNotification(remoteMessage);
     });
 
-    // Return unsubscribe function for cleanup
     return unsubscribe;
   }
 
-  // Display a local notification from FCM message
+  // Display a local notification from FCM message (Android optimized)
   async displayNotification(remoteMessage) {
     try {
+      // Only for Android
+      if (Platform.OS !== 'android') {
+        return;
+      }
+
       // Create a notification channel for Android
       const channelId = await notifee.createChannel({
-        id: 'default',
-        name: 'Default Channel',
+        id: 'careconnect_default',
+        name: 'CareConnect Notifications',
         importance: AndroidImportance.HIGH,
       });
 
@@ -128,7 +166,7 @@ class NotificationService {
 
       // Display the notification
       await notifee.displayNotification({
-        title: title || 'New Notification',
+        title: title || 'CareConnect',
         body: body || 'You have a new notification',
         android: {
           channelId,
@@ -136,6 +174,7 @@ class NotificationService {
             id: 'default',
           },
           importance: AndroidImportance.HIGH,
+          smallIcon: 'ic_launcher', // Make sure you have this icon
         },
         data: {
           type,
@@ -152,12 +191,10 @@ class NotificationService {
     try {
       const {type, relatedId} = remoteMessage.data || {};
 
-      // Based on notification type, navigate to appropriate screen
       switch (type) {
         case 'appointment_confirmed':
         case 'appointment_rejected':
           if (relatedId) {
-            // Navigate to the appointment detail screen
             return {
               screen: 'AppointmentDetail',
               params: {appointmentId: relatedId},
@@ -166,7 +203,6 @@ class NotificationService {
           break;
 
         default:
-          // Default behavior
           return {
             screen: 'Notifications',
             params: {},

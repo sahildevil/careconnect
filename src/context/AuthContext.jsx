@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {authService, doctorService} from '../services/api';
+import {notificationService} from '../services/notifications';
 
 const AuthContext = createContext();
 
@@ -15,7 +16,7 @@ export const AuthProvider = ({children}) => {
   const [userType, setUserType] = useState(null); // 'patient' or 'doctor'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const API_URL = 'http://192.168.1.8:3000/api';
+  const API_URL = 'http://192.168.1.5:3000/api';
   useEffect(() => {
     // Check if user is logged in on app start
     loadUserFromStorage();
@@ -214,6 +215,14 @@ export const AuthProvider = ({children}) => {
           setUser(userData);
           setUserType(userData.user_type);
 
+          // Register device for notifications after successful login
+          try {
+            await notificationService.registerDeviceAfterLogin();
+          } catch (error) {
+            console.error('Failed to register device for notifications:', error);
+            // Don't fail the login if notification registration fails
+          }
+
           if (needsOnboarding) {
             AsyncStorage.setItem('user', JSON.stringify(userData));
             AsyncStorage.setItem('userType', userData.user_type);
@@ -227,6 +236,14 @@ export const AuthProvider = ({children}) => {
         setUserType(userData.user_type);
         AsyncStorage.setItem('user', JSON.stringify(userData));
         AsyncStorage.setItem('userType', userData.user_type);
+
+        // Register device for notifications after successful login (for patients)
+        try {
+          await notificationService.registerDeviceAfterLogin();
+        } catch (error) {
+          console.error('Failed to register device for notifications:', error);
+          // Don't fail the login if notification registration fails
+        }
       }
 
       setLoading(false);
