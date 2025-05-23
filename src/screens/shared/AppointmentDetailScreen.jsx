@@ -370,11 +370,11 @@ const AppointmentDetailScreen = () => {
                     {getDoctorData().specialty || 'Specialist'}
                   </Text>
                 )}
-                <Text style={styles.emailText}>
+                {/* <Text style={styles.emailText}>
                   {isDoctor
                     ? appointment.patient?.email || 'patient@example.com'
                     : getDoctorData().email || 'doctor@example.com'}
-                </Text>
+                </Text> */}
               </View>
             </View>
           </View>

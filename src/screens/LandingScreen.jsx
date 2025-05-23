@@ -33,7 +33,7 @@ const LandingScreen = () => {
         </View>
         
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Doctor App</Text>
+          <Text style={styles.title}>CareConnect</Text>
           <Text style={styles.subtitle}>
             Book an appointment with doctor. Chat with doctor via appointment letter and get consultation
           </Text>

@@ -99,33 +99,98 @@ const BookAppointmentScreen = () => {
   const appStateRef = useRef(AppState.currentState);
 
   useEffect(() => {
-    // Generate dates for the next 7 days (excluding today)
+    if (doctor) {
+      console.log('Doctor details:', {
+        id: doctor.id,
+        name: doctor.name,
+        availableDays: doctor.available_days,
+        availableHours: doctor.available_hours,
+      });
+    }
+  }, [doctor]);
+
+  useEffect(() => {
+    // Parse doctor's available days from the doctor object
+    const availableDayNames = doctor?.available_days
+      ? doctor.available_days.split(',').map(day => day.trim())
+      : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; // Default if not specified
+
+    console.log('Doctor available days:', availableDayNames);
+
+    // Map day names to JavaScript day numbers (0 = Sunday, 1 = Monday, etc.)
+    const dayNameToNumber = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    };
+
+    // Convert available day names to day numbers
+    const availableDayNumbers = availableDayNames.map(
+      dayName => dayNameToNumber[dayName],
+    );
+
+    // Generate dates for the next 14 days (to ensure we get some valid days)
     const dates = [];
     const today = new Date();
 
-    // Start from tomorrow
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= 14; i++) {
       const date = new Date();
       date.setDate(today.getDate() + i);
 
-      // Skip Sundays (assuming doctor is not available on Sundays)
-      if (date.getDay() !== 0) {
+      // Only add dates that match the doctor's available days
+      if (availableDayNumbers.includes(date.getDay())) {
         dates.push(date);
       }
     }
 
-    setAvailableDates(dates);
-  }, []);
+    // Limit to first 7 available dates
+    setAvailableDates(dates.slice(0, 7));
+  }, [doctor?.available_days]);
 
   useEffect(() => {
     if (selectedDate && doctor?.id) {
-      // Generate time slots based on selected date
-      const day = selectedDate.getDay();
+      // Parse doctor's available hours if present
+      let startHour = 9; // Default start hour
+      let endHour = 17; // Default end hour
 
-      // Adjust time slots based on day of week (e.g., shorter hours on Saturday)
-      const isSaturday = day === 6;
-      const slots = generateTimeSlots(9, isSaturday ? 13 : 17);
+      if (doctor?.available_hours) {
+        try {
+          const hoursParts = doctor.available_hours.split('-');
+          if (hoursParts.length === 2) {
+            const startTime = hoursParts[0].trim();
+            const endTime = hoursParts[1].trim();
 
+            // Parse start time (e.g. "9:00 AM" or "2:00 PM")
+            if (startTime.includes('AM')) {
+              startHour = parseInt(startTime.split(':')[0]);
+              if (startHour === 12) startHour = 0; // 12 AM = 0 hour
+            } else if (startTime.includes('PM')) {
+              startHour = parseInt(startTime.split(':')[0]);
+              if (startHour !== 12) startHour += 12; // Convert to 24-hour format
+            }
+
+            // Parse end time
+            if (endTime.includes('AM')) {
+              endHour = parseInt(endTime.split(':')[0]);
+              if (endHour === 12) endHour = 0;
+            } else if (endTime.includes('PM')) {
+              endHour = parseInt(endTime.split(':')[0]);
+              if (endHour !== 12) endHour += 12;
+            }
+
+            console.log(`Parsed hours: ${startHour} to ${endHour}`);
+          }
+        } catch (error) {
+          console.error('Error parsing doctor hours:', error);
+        }
+      }
+
+      // Generate time slots based on the doctor's available hours
+      const slots = generateTimeSlots(startHour, endHour);
       setTimeSlots(slots);
       setSelectedTime(null); // Reset selected time when date changes
 

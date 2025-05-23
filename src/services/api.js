@@ -247,8 +247,10 @@ export const doctorService = {
   getDoctorById: async id => {
     try {
       const response = await api.get(`/doctors/${id}`);
+      console.log('Doctor data retrieved:', response.data.doctor);
       return response.data;
     } catch (error) {
+      console.error('Error fetching doctor details:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
