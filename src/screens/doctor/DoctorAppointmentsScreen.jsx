@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 0,
     borderRadius: 10,
     elevation: 2,
     shadowColor: '#000',

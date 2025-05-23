@@ -18,7 +18,7 @@ export const AuthProvider = ({children}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const API_URL = 'http://192.168.1.5:3000/api';
+  const API_URL = 'http://192.168.1.8:3000/api';
 
   useEffect(() => {
     // Initial load

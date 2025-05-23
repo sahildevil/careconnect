@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform} from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.5:3000/api';
+const API_URL = 'http://192.168.1.8:3000/api';
 
 const notificationApi = axios.create({
   baseURL: API_URL,
