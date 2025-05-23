@@ -16,6 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import {CustomButton} from '../../components';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const DoctorHomeScreen = () => {
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -31,6 +32,7 @@ const DoctorHomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const {user} = useAuth();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Initial fetch
@@ -325,7 +327,7 @@ const DoctorHomeScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0CB69B" />
 
-      <View style={styles.headerBackground}>
+      <View style={[styles.headerBackground, {paddingTop: insets.top}]}>
         <SafeAreaView>
           <View style={styles.header}>
             <View style={styles.userInfo}>

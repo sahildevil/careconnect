@@ -14,13 +14,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {CustomButton, HeaderComponent} from '../../components';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const DoctorAppointmentsScreen = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending'); // Change default tab to pending
   const navigation = useNavigation();
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     fetchAppointments();
 
@@ -333,7 +334,7 @@ const DoctorAppointmentsScreen = () => {
       <HeaderComponent
         title="My Appointments"
         showLogo={false}
-        style={styles.header}
+        style={[styles.header,{paddingTop: insets.top}]}
         titleStyle={styles.headerTitleText} // Add this prop
       />
 

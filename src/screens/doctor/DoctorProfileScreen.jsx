@@ -14,13 +14,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigation} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const DoctorProfileScreen = () => {
   const {user, logout} = useAuth();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
+    const insets = useSafeAreaInsets();
   // Doctor data state
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -111,7 +112,7 @@ const DoctorProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <Text style={styles.headerTitle}>My Profile</Text>
         <TouchableOpacity
           style={styles.editButton}

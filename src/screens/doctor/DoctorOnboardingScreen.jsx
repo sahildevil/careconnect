@@ -17,7 +17,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {doctorService} from '../../services/api';
 import {CustomTextField, CustomButton, CustomPicker} from '../../components';
 import {WebView} from 'react-native-webview';
-
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 const DaysOfWeekPicker = ({selectedDays, onDayToggle}) => {
   const daysOfWeek = [
     'Monday',
@@ -366,8 +366,16 @@ const LocationMapSearch = ({onLocationSelect, onCancel}) => {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         scrollEnabled={true}
-        bounces={false}
+        bounces={true}
+        nestedScrollEnabled={true}
+        containerStyle={{flex: 1}}
+        startInLoadingState={true}
         onError={error => console.error('WebView error:', error)}
+        showsVerticalScrollIndicator={true}
+        // Add these lines to improve the scrolling behavior
+        contentInset={{top: 0, left: 0, bottom: 0, right: 0}}
+        automaticallyAdjustContentInsets={false}
+        scalesPageToFit={false}
       />
       <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -381,7 +389,7 @@ const DoctorOnboardingScreen = () => {
   const navigation = useNavigation();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-
+  const insets = useSafeAreaInsets();
   // Add console log for debugging
   useEffect(() => {
     console.log('Current user data in onboarding:', user);
@@ -540,17 +548,20 @@ const DoctorOnboardingScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+      <View
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <Text style={styles.headerTitle}>Complete Your Profile</Text>
           <Text style={styles.stepText}>Step {currentStep} of 4</Text>
         </View>
 
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.contentContainer}>
+          contentContainerStyle={styles.contentContainer}
+          scrollEnabled={!showMap} // Disable outer scrolling when map is shown
+          keyboardShouldPersistTaps="handled" // Improve keyboard interaction
+        >
           {currentStep === 1 && (
             <View style={styles.stepContainer}>
               <View style={styles.iconContainer}>
@@ -694,7 +705,7 @@ const DoctorOnboardingScreen = () => {
               <CustomTextField
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Write a short description about yourself, your specialties, and your practice"
+                placeholder="Write a short description about yourself"
                 multiline
                 style={styles.bioInput}
               />
@@ -726,7 +737,7 @@ const DoctorOnboardingScreen = () => {
             disabled={loading}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -850,14 +861,15 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   timePicker: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0CB69B',
+    color: 'blue',
     borderRadius: 8,
   },
   input: {
     width: '100%',
   },
   bioInput: {
-    width: '100%',
+    width: '90%',
     height: 120,
     textAlignVertical: 'top',
   },
@@ -885,6 +897,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#0CB69B',
+    height: 60,
   },
   backButtonText: {
     color: '#0CB69B',
@@ -892,6 +905,7 @@ const styles = StyleSheet.create({
   nextButton: {
     flex: 1,
     backgroundColor: '#0CB69B',
+    height: 60,
   },
   mapContainer: {
     height: 450,
@@ -924,6 +938,7 @@ const styles = StyleSheet.create({
   locationButton: {
     width: '100%',
     backgroundColor: '#0CB69B',
+    height: 60,
   },
   selectedLocationContainer: {
     width: '100%',
