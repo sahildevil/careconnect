@@ -55,6 +55,7 @@ const PatientHomeScreen = () => {
     }, 1000);
   }, []);
 
+  // Update the fetchData function to sort appointments by date
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -63,11 +64,17 @@ const PatientHomeScreen = () => {
       const appointmentsResponse =
         await appointmentService.getPatientAppointments();
       if (appointmentsResponse.success) {
-        setUpcomingAppointments(
-          appointmentsResponse.appointments
-            .filter(app => new Date(app.appointment_date) >= new Date())
-            .slice(0, 5),
-        );
+        // Filter future appointments
+        const futureAppointments = appointmentsResponse.appointments
+          .filter(app => new Date(app.appointment_date) >= new Date());
+        
+        // Sort appointments by date (earliest to latest)
+        futureAppointments.sort((a, b) => {
+          return new Date(a.appointment_date) - new Date(b.appointment_date);
+        });
+        
+        // Limit to 5 appointments
+        setUpcomingAppointments(futureAppointments.slice(0, 5));
       }
 
       // Fetch popular doctors
