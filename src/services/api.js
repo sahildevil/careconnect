@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Alert} from 'react-native';
 
 const API_URL = 'http://192.168.1.5:3000/api';
 
@@ -12,93 +13,135 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to add auth token
+// Track auth state
+let isRefreshingAuth = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({resolve, reject}) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+// Request interceptor with better token handling
 api.interceptors.request.use(
   async config => {
     try {
+      // Always get fresh token from storage
       const token = await AsyncStorage.getItem('token');
-      if (token && token.length > 10) {
-        console.log('API: Adding auth token to request');
+      const user = await AsyncStorage.getItem('user');
+
+      if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('API: Adding fresh auth token to request');
       } else {
-        console.log('API: No valid token found');
-        // Try to refresh the session if no valid token
-        await refreshSession();
+        console.log('API: No token found in storage');
+      }
+
+      // Add user context for debugging
+      if (user) {
+        const userData = JSON.parse(user);
+        console.log(
+          `API: Request by user ${userData.id} (${userData.user_type})`,
+        );
       }
     } catch (error) {
-      console.error('API: Error getting token', error);
+      console.error('Error setting auth token:', error);
     }
     return config;
   },
   error => Promise.reject(error),
 );
 
-// Add this new function to check and refresh the session
-const refreshSession = async () => {
-  try {
-    console.log('Attempting to refresh session...');
-    const userString = await AsyncStorage.getItem('user');
-
-    // If we have user data but no valid token, try to refresh
-    if (userString) {
-      const userData = JSON.parse(userString);
-      const userTypeData = await AsyncStorage.getItem('userType');
-
-      if (userData && userData.email && userTypeData) {
-        console.log('Found stored user data, refreshing session...');
-        // We can't actually refresh the token without the password,
-        // but we can at least log this information for debugging
-        console.log(
-          `User would need to re-authenticate: ${userData.email} (${userTypeData})`,
-        );
-      }
-    }
-  } catch (error) {
-    console.error('Error refreshing session:', error);
-  }
-};
-
-// Add API interceptors for better error handling
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error.response?.data || error.message);
-    return Promise.reject(error);
-  },
-);
-
-// Add this to your API interceptors
+// Response interceptor with retry logic
 api.interceptors.response.use(
   response => response,
   async error => {
-    // Check if error is due to an expired token (401)
-    if (error.response && error.response.status === 401) {
-      console.log('Unauthorized error - attempting token refresh');
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshingAuth) {
+        // If we're already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({resolve, reject});
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshingAuth = true;
 
       try {
-        // Get current user data
-        const userString = await AsyncStorage.getItem('user');
-        if (userString) {
-          // Force logout and redirect to login
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('user');
-          await AsyncStorage.removeItem('userType');
+        console.log('API: Got 401, attempting to refresh auth...');
 
-          // Alert the user that they need to log in again
-          Alert.alert(
-            'Session Expired',
-            'Your session has expired. Please log in again.',
-            [{text: 'OK'}],
+        // Check if we have valid stored credentials
+        const token = await AsyncStorage.getItem('token');
+        const userString = await AsyncStorage.getItem('user');
+
+        if (token && userString) {
+          // Try to validate the token
+          const validateResponse = await fetch(
+            `${API_URL}/auth/validate-token`,
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
           );
+
+          if (validateResponse.status === 200) {
+            console.log('API: Token still valid, retrying request');
+            processQueue(null, token);
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }
         }
+
+        // Token is invalid - clear auth and redirect to login
+        console.log('API: Token invalid, clearing auth state');
+        await AsyncStorage.removeItem('user');
+        await AsyncStorage.removeItem('token');
+        await AsyncStorage.removeItem('userType');
+
+        processQueue(new Error('Authentication failed'), null);
+
+        // Show alert to user
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please log in again.',
+          [{text: 'OK'}],
+        );
+
+        return Promise.reject(error);
       } catch (refreshError) {
-        console.error('Error handling token refresh:', refreshError);
+        processQueue(refreshError, null);
+        console.error('API: Error during auth refresh:', refreshError);
+        return Promise.reject(error);
+      } finally {
+        isRefreshingAuth = false;
       }
     }
 
     return Promise.reject(error);
   },
 );
+
+// Export the enhanced api instance
+export default api;
 
 // Auth services
 export const authService = {
@@ -229,6 +272,24 @@ export const authService = {
       return response.data;
     } catch (error) {
       throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  // Add a method to check auth status
+  checkAuthStatus: async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        return {isAuthenticated: false};
+      }
+
+      const response = await api.get('/auth/validate-token');
+      return {
+        isAuthenticated: response.data.success,
+        user: response.data.user,
+      };
+    } catch (error) {
+      return {isAuthenticated: false};
     }
   },
 };
@@ -443,20 +504,41 @@ export const appointmentService = {
 
   getAvailableSlots: async (doctorId, date) => {
     try {
+      // Ensure we have auth before making the call
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       const formattedDate = date.toISOString().split('T')[0];
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+      console.log('API: Fetching available slots for:', {
+        doctorId,
+        date: formattedDate,
+        timezone: userTimezone,
+      });
+
+      // Add cache-busting parameter to ensure fresh data
+      const cacheBuster = Date.now();
+
       const response = await api.get(
-        `/appointments/available-slots/${doctorId}?date=${formattedDate}&timezone=${userTimezone}`,
+        `/appointments/available-slots/${doctorId}?date=${formattedDate}&timezone=${userTimezone}&_=${cacheBuster}`,
       );
 
-      console.log(
-        'API: Got booked slots from server:',
-        response.data.bookedSlots,
-      );
+      console.log('API: Got booked slots response:', {
+        bookedSlots: response.data.bookedSlots,
+        totalBookings: response.data.totalBookings,
+        requestedBy: response.data.requestedBy,
+        timestamp: response.data.timestamp,
+      });
+
       return response.data;
     } catch (error) {
       console.error('Error fetching available slots:', error);
+      if (error.message === 'Not authenticated') {
+        throw new Error('Please log in again to continue');
+      }
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
@@ -484,5 +566,3 @@ export const appointmentService = {
     }
   },
 };
-
-export default api;
