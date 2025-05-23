@@ -401,14 +401,15 @@ const BookAppointmentScreen = () => {
           setBookedSlots([...bookedSlots, selectedTime]);
         }
 
-        // Create a complete appointment object with doctor data
+        // Create a new appointment object with the response data and doctor info
         const newAppointment = {
           ...response.appointment,
           doctor: doctor, // Include doctor information for display
           status: 'pending',
+          created_at: new Date().toISOString(), // Add creation timestamp if not provided by API
         };
         
-        // Add the new appointment to the context
+        // Add the appointment to context for real-time update
         addAppointment(newAppointment);
 
         Alert.alert(

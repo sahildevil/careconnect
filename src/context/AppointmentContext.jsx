@@ -18,7 +18,14 @@ export const AppointmentProvider = ({ children }) => {
       const response = await appointmentService.getPatientAppointments();
       
       if (response.success) {
-        setAppointments(response.appointments);
+        // Sort appointments by appointment date (soonest first)
+        const sortedAppointments = response.appointments.sort((a, b) => {
+          const dateA = new Date(a.appointment_date);
+          const dateB = new Date(b.appointment_date);
+          return dateA - dateB; // Ascending order (soonest first)
+        });
+        
+        setAppointments(sortedAppointments);
       } else {
         setError('Failed to fetch appointments');
       }
@@ -45,17 +52,32 @@ export const AppointmentProvider = ({ children }) => {
         return prevAppointments;
       }
       
-      return [newAppointment, ...prevAppointments];
+      // Add the new appointment and sort all appointments by date
+      const updatedAppointments = [...prevAppointments, newAppointment];
+      
+      // Sort by appointment date (soonest first)
+      return updatedAppointments.sort((a, b) => {
+        const dateA = new Date(a.appointment_date);
+        const dateB = new Date(b.appointment_date);
+        return dateA - dateB; // Ascending order (soonest first)
+      });
     });
   }, []);
 
   // Update an existing appointment
   const updateAppointment = useCallback((updatedAppointment) => {
-    setAppointments(prevAppointments => 
-      prevAppointments.map(app => 
+    setAppointments(prevAppointments => {
+      const updated = prevAppointments.map(app => 
         app.id === updatedAppointment.id ? updatedAppointment : app
-      )
-    );
+      );
+      
+      // Re-sort appointments by date after updating
+      return updated.sort((a, b) => {
+        const dateA = new Date(a.appointment_date);
+        const dateB = new Date(b.appointment_date);
+        return dateA - dateB;
+      });
+    });
   }, []);
 
   // Remove an appointment

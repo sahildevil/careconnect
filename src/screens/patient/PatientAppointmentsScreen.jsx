@@ -91,12 +91,14 @@ const PatientAppointmentsScreen = () => {
     }
   };
 
-  // Update the getFilteredAppointments function to show pending appointments
+  // Modify the getFilteredAppointments function to group appointments by date
   const getFilteredAppointments = () => {
     const now = new Date();
 
+    let filteredAppointments = [];
+
     if (activeTab === 'upcoming') {
-      return appointments.filter(app => {
+      filteredAppointments = appointments.filter(app => {
         const appDate = new Date(app.appointment_date);
         return (
           appDate >= now &&
@@ -104,15 +106,75 @@ const PatientAppointmentsScreen = () => {
         );
       });
     } else if (activeTab === 'completed') {
-      return appointments.filter(app => app.status === 'completed');
+      filteredAppointments = appointments.filter(app => app.status === 'completed');
     } else if (activeTab === 'cancelled') {
       // Handle both spellings for backwards compatibility
-      return appointments.filter(
+      filteredAppointments = appointments.filter(
         app => app.status === 'canceled' || app.status === 'cancelled',
+      );
+    } else {
+      filteredAppointments = [...appointments];
+    }
+
+    // Sort appointments by appointment date (soonest first)
+    const sortedAppointments = filteredAppointments.sort((a, b) => {
+      const dateA = new Date(a.appointment_date);
+      const dateB = new Date(b.appointment_date);
+      return dateA - dateB; // Ascending order (soonest first)
+    });
+
+    // Now add date separators to the sorted appointments
+    const appointmentsWithSeparators = [];
+    let currentDate = null;
+
+    sortedAppointments.forEach(appointment => {
+      const appointmentDate = new Date(appointment.appointment_date);
+      const appointmentDateString = appointmentDate.toDateString();
+
+      // If this appointment is on a different day than the previous one, add a separator
+      if (currentDate !== appointmentDateString) {
+        currentDate = appointmentDateString;
+
+        // Format the date nicely
+        const formattedDate = appointmentDate.toLocaleDateString('en-US', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+
+        appointmentsWithSeparators.push({
+          id: `separator-${appointmentDateString}`,
+          type: 'separator',
+          date: appointmentDate,
+          formattedDate,
+        });
+      }
+
+      // Then add the appointment with type 'appointment'
+      appointmentsWithSeparators.push({
+        ...appointment,
+        type: 'appointment',
+      });
+    });
+
+    return appointmentsWithSeparators;
+  };
+
+  // Add a renderItem function that can handle both appointments and separators
+  const renderItem = ({item}) => {
+    if (item.type === 'separator') {
+      return (
+        <View style={styles.dateSeparator}>
+          <View style={styles.dateSeparatorLine} />
+          <Text style={styles.dateSeparatorText}>{item.formattedDate}</Text>
+          <View style={styles.dateSeparatorLine} />
+        </View>
       );
     }
 
-    return appointments;
+    // This is a regular appointment item
+    return renderAppointmentItem({item});
   };
 
   // Update the appointment item to show pending status differently
@@ -246,7 +308,7 @@ const PatientAppointmentsScreen = () => {
       ) : (
         <FlatList
           data={getFilteredAppointments()}
-          renderItem={renderAppointmentItem}
+          renderItem={renderItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           refreshControl={
@@ -458,6 +520,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '500',
+  },
+  dateSeparator: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  dateSeparatorLine: {
+    height: 1,
+    width: '100%',
+    backgroundColor: '#ddd',
+  },
+  dateSeparatorText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    marginVertical: 5,
   },
 });
 
