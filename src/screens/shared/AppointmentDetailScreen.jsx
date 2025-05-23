@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -18,6 +20,7 @@ const AppointmentDetailScreen = () => {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const {userType} = useAuth();
+  const [directionsLoading, setDirectionsLoading] = useState(false);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -84,6 +87,57 @@ const AppointmentDetailScreen = () => {
     navigation.navigate('VideoCall', {appointmentId: appointment.id});
   };
 
+  const handleGetDirections = async () => {
+    try {
+      setDirectionsLoading(true);
+
+      // Use consistent doctor data access
+      const doctorData = getDoctorData();
+
+      // Check if doctor has location data
+      if (!doctorData.latitude || !doctorData.longitude) {
+        Alert.alert(
+          'Location Unavailable',
+          'Doctor location information is not available.',
+        );
+        return;
+      }
+
+      const destination = `${doctorData.latitude},${doctorData.longitude}`;
+      const destinationName = encodeURIComponent(
+        doctorData.location_link || `Dr. ${doctorData.name}'s clinic`,
+      );
+      let url;
+
+      if (Platform.OS === 'android') {
+        // Google Maps URI for Android
+        url = `google.navigation:q=${destination}&mode=d`;
+      } else {
+        // Apple Maps or Google Maps URL for iOS
+        url = `https://maps.google.com/maps?daddr=${destination}&dname=${destinationName}&dirflg=d`;
+      }
+
+      // Check if the URL can be opened
+      const canOpen = await Linking.canOpenURL(url);
+
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        // Fallback to web URL if app link doesn't work
+        const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${destinationName}&travelmode=driving`;
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      console.error('Error opening maps:', error);
+      Alert.alert(
+        'Navigation Error',
+        'Could not open maps application. Please try again.',
+      );
+    } finally {
+      setDirectionsLoading(false);
+    }
+  };
+
   // Function to determine status color:
 
   const getStatusColor = status => {
@@ -99,6 +153,10 @@ const AppointmentDetailScreen = () => {
       default:
         return '#0CB69B';
     }
+  };
+
+  const getDoctorData = () => {
+    return appointment.doctor || appointment.doctors || {};
   };
 
   if (loading) {
@@ -152,6 +210,84 @@ const AppointmentDetailScreen = () => {
   const isScheduled = appointment.status === 'scheduled';
   const canStartCall =
     isScheduled && Math.abs(new Date() - appointmentDate) / (1000 * 60) <= 30; // within 30 minutes
+
+  const renderDirectionsButton = () => {
+    // Only show for patients and confirmed appointments
+    if (userType === 'doctor' || appointment.status !== 'confirmed') {
+      return null;
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.directionsButton}
+        onPress={handleGetDirections}
+        disabled={directionsLoading}>
+        {directionsLoading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <Icon
+              name="navigate"
+              size={20}
+              color="#fff"
+              style={styles.directionsIcon}
+            />
+            <Text style={styles.directionsText}>Get Directions</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  // Modify the part where you access doctor information
+  const renderLocationInfo = () => {
+    // Get doctor data properly from either structure
+    const doctorData = appointment.doctor || appointment.doctors || {};
+
+    if (!isDoctor) {
+      if (appointment.status === 'confirmed' && doctorData.location_link) {
+        return (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.locationContainer}>
+              <Text style={styles.sectionTitle}>Clinic Location</Text>
+              <View style={styles.locationRow}>
+                <Icon
+                  name="location"
+                  size={20}
+                  color="#0CB69B"
+                  style={styles.locationIcon}
+                />
+                <Text style={styles.locationText}>
+                  {doctorData.location_link}
+                </Text>
+              </View>
+            </View>
+          </>
+        );
+      } else if (appointment.status === 'pending') {
+        // Add message for pending appointments
+        return (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.infoContainer}>
+              <Icon
+                name="information-circle"
+                size={24}
+                color="#FFC107"
+                style={styles.infoIcon}
+              />
+              <Text style={styles.infoText}>
+                Location details and directions will be available once the
+                appointment is confirmed by the doctor.
+              </Text>
+            </View>
+          </>
+        );
+      }
+    }
+    return null;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -218,7 +354,7 @@ const AppointmentDetailScreen = () => {
                   <Text style={styles.avatarText}>
                     {isDoctor
                       ? appointment.patient?.name?.charAt(0) || 'P'
-                      : appointment.doctor?.name?.charAt(0) || 'D'}
+                      : getDoctorData().name?.charAt(0) || 'D'}
                   </Text>
                 </View>
               </View>
@@ -227,17 +363,17 @@ const AppointmentDetailScreen = () => {
                 <Text style={styles.personName}>
                   {isDoctor
                     ? appointment.patient?.name || 'Patient'
-                    : `Dr. ${appointment.doctor?.name || 'Doctor'}`}
+                    : `Dr. ${getDoctorData().name || 'Doctor'}`}
                 </Text>
                 {!isDoctor && (
                   <Text style={styles.specialtyText}>
-                    {appointment.doctor?.specialty || 'Specialist'}
+                    {getDoctorData().specialty || 'Specialist'}
                   </Text>
                 )}
                 <Text style={styles.emailText}>
                   {isDoctor
                     ? appointment.patient?.email || 'patient@example.com'
-                    : appointment.doctor?.email || 'doctor@example.com'}
+                    : getDoctorData().email || 'doctor@example.com'}
                 </Text>
               </View>
             </View>
@@ -262,6 +398,9 @@ const AppointmentDetailScreen = () => {
               </View>
             </>
           )}
+
+          {renderDirectionsButton()}
+          {renderLocationInfo()}
 
           {canStartCall && (
             <TouchableOpacity
@@ -554,6 +693,59 @@ const styles = StyleSheet.create({
     color: '#F44336',
     fontSize: 16,
     fontWeight: '600',
+  },
+  directionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3897F0', // blue color for directions (different from video call)
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  directionsIcon: {
+    marginRight: 8,
+  },
+  directionsText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  locationContainer: {
+    marginTop: 10,
+    padding: 15,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationIcon: {
+    marginRight: 8,
+  },
+  locationText: {
+    flex: 1,
+    color: '#555',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+  },
+  infoIcon: {
+    marginRight: 10,
+  },
+  infoText: {
+    flex: 1,
+    color: '#555',
+    fontSize: 15,
+    lineHeight: 22,
   },
 });
 

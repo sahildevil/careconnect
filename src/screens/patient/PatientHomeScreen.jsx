@@ -190,38 +190,98 @@ const PatientHomeScreen = () => {
     );
   };
 
-  const renderAppointmentItem = ({item}) => (
-    <TouchableOpacity
-      style={styles.appointmentCard}
-      onPress={() =>
-        navigation.navigate('AppointmentDetail', {appointment: item})
-      }>
-      <View style={styles.appointmentType}>
-        <Text style={styles.appointmentText}>
-          {item.appointment_type || 'Consultation'}
-        </Text>
-        <Icon name="videocam" size={18} color="#0CB69B" />
-      </View>
-      <Text style={styles.waitingText}>
-        {new Date(item.appointment_date) > new Date()
-          ? 'Upcoming'
-          : 'Waiting for call'}
-      </Text>
-      <View style={styles.doctorInfo}>
-        <View>
-          <Text style={styles.doctorName}>
-            Dr. {item.doctor?.name || 'Doctor'}
+  const renderAppointmentItem = ({item}) => {
+    // Get doctor data consistently
+    const doctorData = item.doctor || item.doctors || {};
+
+    // Format date and time
+    const appointmentDate = new Date(item.appointment_date);
+    const formattedDate = appointmentDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    const formattedTime = appointmentDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    // Get status color
+    const getStatusColor = status => {
+      switch (status) {
+        case 'confirmed':
+        case 'scheduled':
+          return '#0CB69B'; // green
+        case 'pending':
+          return '#FFC107'; // yellow/amber
+        case 'completed':
+          return '#4CAF50'; // green
+        case 'cancelled':
+        case 'canceled':
+          return '#F44336'; // red
+        default:
+          return '#888888'; // gray
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.appointmentCard}
+        onPress={() =>
+          navigation.navigate('AppointmentDetail', {appointment: item})
+        }>
+        <View style={styles.appointmentType}>
+          <Text style={styles.appointmentText}>
+            {item.appointment_type
+              ? item.appointment_type.charAt(0).toUpperCase() +
+                item.appointment_type.slice(1)
+              : 'Consultation'}
           </Text>
-          <Text style={styles.appointmentTime}>
-            {new Date(item.appointment_date).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
+          <View
+            style={[
+              styles.statusBadge,
+              {backgroundColor: getStatusColor(item.status) + '20'}, // 20% opacity
+            ]}>
+            <Text
+              style={[styles.statusText, {color: getStatusColor(item.status)}]}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+
+        <View style={styles.dateTimeInfo}>
+          <View style={styles.dateRow}>
+            <Icon name="calendar-outline" size={14} color="#0CB69B" />
+            <Text style={styles.dateText}>{formattedDate}</Text>
+          </View>
+          <View style={styles.timeRow}>
+            <Icon name="time-outline" size={14} color="#0CB69B" />
+            <Text style={styles.timeText}>{formattedTime}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.doctorInfo}>
+          <View style={styles.doctorAvatar}>
+            <Text style={styles.doctorInitial}>
+              {doctorData.name ? doctorData.name.charAt(0) : 'D'}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.doctorName}>
+              Dr. {doctorData.name || 'Doctor'}
+            </Text>
+            <Text style={styles.doctorSpecialtyText}>
+              {doctorData.specialty || 'Specialist'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderDoctorItem = ({item}) => (
     <TouchableOpacity
@@ -534,7 +594,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   appointmentCard: {
-    width: 200,
+    width: 250, // Make the card wider to fit more content
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 15,
@@ -593,15 +653,15 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   specialtyText: {
-  marginTop: 4,
-  fontSize: 12,
-  textAlign: 'center',
-  color: '#333',
-  width: 80, // Increased width to fit longer words
-  whiteSpace: 'nowrap', // Prevent line break
-  overflow: 'hidden',    // Hide overflow
-  textOverflow: 'ellipsis', // Show ellipsis if text overflows
-},
+    marginTop: 4,
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#333',
+    width: 80, // Increased width to fit longer words
+    whiteSpace: 'nowrap', // Prevent line break
+    overflow: 'hidden', // Hide overflow
+    textOverflow: 'ellipsis', // Show ellipsis if text overflows
+  },
   doctorCard: {
     backgroundColor: '#fff',
     borderRadius: 15,
@@ -690,6 +750,56 @@ const styles = StyleSheet.create({
   bookNowText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  dateTimeInfo: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#333',
+    marginLeft: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 8,
+  },
+  doctorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E6F8F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  doctorInitial: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0CB69B',
+  },
+  doctorSpecialtyText: {
+    fontSize: 12,
+    color: '#888',
   },
 });
 

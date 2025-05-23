@@ -178,6 +178,9 @@ const PatientAppointmentsScreen = () => {
       minute: '2-digit',
     });
 
+    // Get doctor data consistently
+    const doctorData = item.doctor || item.doctors || {};
+
     return (
       <View style={styles.appointmentCard}>
         <View style={styles.appointmentHeader}>
@@ -209,10 +212,10 @@ const PatientAppointmentsScreen = () => {
         <View style={styles.doctorInfo}>
           <View style={styles.doctorDetails}>
             <Text style={styles.doctorName}>
-              Dr. {item.doctor?.name || 'Doctor'}
+              Dr. {doctorData.name || 'Doctor'}
             </Text>
             <Text style={styles.specialtyText}>
-              {item.doctor?.specialty || 'Specialist'}
+              {doctorData.specialty || 'Specialist'}
             </Text>
           </View>
         </View>
@@ -221,7 +224,7 @@ const PatientAppointmentsScreen = () => {
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={() =>
-              navigation.navigate('DoctorDetail', {doctorId: item.doctor_id})
+              navigation.navigate('AppointmentDetail', {appointmentId: item.id})
             }>
             <Text style={styles.detailsText}>View Details</Text>
           </TouchableOpacity>
