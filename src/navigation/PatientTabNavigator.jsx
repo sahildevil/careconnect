@@ -1,6 +1,7 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
+import NotificationBadge from '../components/NotificationBadge';
 
 // Import Patient Screens
 import PatientHomeScreen from '../screens/patient/PatientHomeScreen';
@@ -30,7 +31,14 @@ const PatientTabNavigator = () => {
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
       })}>
-      <Tab.Screen name="Home" component={PatientHomeScreen} />
+      <Tab.Screen
+        name="Home"
+        component={PatientHomeScreen}
+        options={{
+          headerTitle: 'CareConnect',
+          headerRight: () => <NotificationBadge />,
+        }}
+      />
       <Tab.Screen name="Appointments" component={PatientAppointmentsScreen} />
       <Tab.Screen name="Profile" component={PatientProfileScreen} />
     </Tab.Navigator>
