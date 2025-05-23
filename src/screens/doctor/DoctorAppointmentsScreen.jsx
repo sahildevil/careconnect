@@ -212,6 +212,26 @@ const DoctorAppointmentsScreen = () => {
       minute: '2-digit',
     });
 
+    // Improve patient name display with better fallbacks
+    const getPatientName = () => {
+      // Check multiple possible paths where patient name might be stored
+      if (item.patient && item.patient.name) {
+        return item.patient.name;
+      } else if (item.patient_name) {
+        return item.patient_name;
+      } else if (item.patientName) {
+        return item.patientName;
+      } else if (item.patients && item.patients.name) {
+        return item.patients.name;
+      } else {
+        // Add logging to see what's actually in the appointment data
+        console.log('Patient data in appointment:', JSON.stringify(item.patient || item.patients || {}));
+        return 'Unknown Patient';
+      }
+    };
+
+    const patientName = getPatientName();
+
     return (
       <View style={styles.appointmentCard}>
         <View style={styles.appointmentHeader}>
@@ -224,7 +244,7 @@ const DoctorAppointmentsScreen = () => {
               styles.statusBadge,
               item.status === 'completed'
                 ? styles.completedBadge
-                : item.status === 'cancelled'
+                : item.status === 'cancelled' || item.status === 'canceled'
                 ? styles.cancelledBadge
                 : styles.scheduledBadge,
             ]}>
@@ -237,12 +257,12 @@ const DoctorAppointmentsScreen = () => {
         <View style={styles.patientInfo}>
           <View style={styles.patientAvatar}>
             <Text style={styles.avatarText}>
-              {item.patient?.name?.charAt(0) || 'P'}
+              {patientName.charAt(0) || 'P'}
             </Text>
           </View>
           <View style={styles.patientDetails}>
             <Text style={styles.patientName}>
-              {item.patient?.name || 'Patient'}
+              {patientName}
             </Text>
             <Text style={styles.reasonText}>
               Reason: {item.reason || 'Consultation'}
