@@ -120,7 +120,8 @@ const NotificationsScreen = () => {
       if (notification.related_id) {
         navigation.navigate('AppointmentDetail', {
           appointmentId: notification.related_id,
-          fromReminder: notification.notification_type === 'appointment_reminder'
+          fromReminder:
+            notification.notification_type === 'appointment_reminder',
         });
       }
     }

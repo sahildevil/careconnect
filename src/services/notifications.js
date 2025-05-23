@@ -56,15 +56,17 @@ class NotificationService {
       const token = await messaging().getToken();
       console.log('FCM token:', token);
       this.fcmToken = token;
-      
+
       // Store token locally
       await AsyncStorage.setItem('fcmToken', token);
 
       // Register handlers
       this.registerMessageHandlers();
-      
+
       this.isInitialized = true;
-      console.log('Notification service initialized (token registration pending authentication)');
+      console.log(
+        'Notification service initialized (token registration pending authentication)',
+      );
 
       return true;
     } catch (error) {
@@ -84,8 +86,8 @@ class NotificationService {
       }
 
       // Use stored FCM token or get a new one
-      let fcmToken = this.fcmToken || await messaging().getToken();
-      
+      let fcmToken = this.fcmToken || (await messaging().getToken());
+
       if (!fcmToken) {
         console.error('No FCM token available for registration');
         return false;
@@ -109,7 +111,7 @@ class NotificationService {
         console.log('FCM token refreshed:', newToken);
         this.fcmToken = newToken;
         await AsyncStorage.setItem('fcmToken', newToken);
-        
+
         // Only re-register if user is still authenticated
         const authToken = await AsyncStorage.getItem('token');
         if (authToken) {
@@ -123,13 +125,15 @@ class NotificationService {
       return unsubscribe;
     } catch (error) {
       console.error('Failed to register device token:', error);
-      
+
       // If it's an authentication error, don't throw - just log
       if (error.response && error.response.status === 401) {
-        console.log('Authentication required for device registration - will retry after login');
+        console.log(
+          'Authentication required for device registration - will retry after login',
+        );
         return false;
       }
-      
+
       throw error;
     }
   }
@@ -141,12 +145,17 @@ class NotificationService {
         console.log('User authenticated, registering device token...');
         await this.registerDeviceToken();
       } else {
-        console.log('Notification service not initialized, initializing now...');
+        console.log(
+          'Notification service not initialized, initializing now...',
+        );
         await this.init();
         await this.registerDeviceToken();
       }
     } catch (error) {
-      console.error('Error during post-authentication notification setup:', error);
+      console.error(
+        'Error during post-authentication notification setup:',
+        error,
+      );
     }
   }
 
@@ -226,19 +235,19 @@ class NotificationService {
           if (relatedId) {
             return {
               screen: 'AppointmentDetail',
-              params: {appointmentId: relatedId}
+              params: {appointmentId: relatedId},
             };
           }
           break;
-          
+
         case 'appointment_reminder':
           if (relatedId) {
             return {
               screen: 'AppointmentDetail',
               params: {
                 appointmentId: relatedId,
-                fromReminder: true
-              }
+                fromReminder: true,
+              },
             };
           }
           break;
@@ -246,7 +255,7 @@ class NotificationService {
         default:
           return {
             screen: 'Notifications',
-            params: {}
+            params: {},
           };
       }
     } catch (error) {
