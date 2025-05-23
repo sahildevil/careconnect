@@ -12,21 +12,27 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to add auth token
+// Add request interceptor to add auth token and user context
 api.interceptors.request.use(
   async config => {
     try {
       const token = await AsyncStorage.getItem('token');
-      if (token && token.length > 10) {
-        console.log('API: Adding auth token to request');
+      const user = await AsyncStorage.getItem('user');
+
+      if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        console.log('API: No valid token found');
-        // Try to refresh the session if no valid token
-        await refreshSession();
+        console.log('API: Adding auth token to request');
+      }
+
+      // Add user context for debugging
+      if (user) {
+        const userData = JSON.parse(user);
+        console.log(
+          `API: Request made by user ${userData.id} (${userData.user_type})`,
+        );
       }
     } catch (error) {
-      console.error('API: Error getting token', error);
+      console.error('Error setting auth token:', error);
     }
     return config;
   },
@@ -425,14 +431,26 @@ export const appointmentService = {
       const formattedDate = date.toISOString().split('T')[0];
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+      console.log('API: Fetching available slots for:', {
+        doctorId,
+        date: formattedDate,
+        timezone: userTimezone,
+      });
+
+      // Add cache-busting parameter to ensure fresh data
+      const cacheBuster = Date.now();
+
       const response = await api.get(
-        `/appointments/available-slots/${doctorId}?date=${formattedDate}&timezone=${userTimezone}`,
+        `/appointments/available-slots/${doctorId}?date=${formattedDate}&timezone=${userTimezone}&_=${cacheBuster}`,
       );
 
-      console.log(
-        'API: Got booked slots from server:',
-        response.data.bookedSlots,
-      );
+      console.log('API: Got booked slots response:', {
+        bookedSlots: response.data.bookedSlots,
+        totalBookings: response.data.totalBookings,
+        requestedBy: response.data.requestedBy,
+        timestamp: response.data.timestamp,
+      });
+
       return response.data;
     } catch (error) {
       console.error('Error fetching available slots:', error);

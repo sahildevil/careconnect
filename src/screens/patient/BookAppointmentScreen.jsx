@@ -206,11 +206,11 @@ const BookAppointmentScreen = () => {
       // Initial fetch
       fetchBookedSlots(selectedDate);
 
-      // Set up interval to check for updates every 15 seconds
+      // Set up interval to check for updates every 10 seconds
       refreshIntervalRef.current = setInterval(() => {
-        console.log('Auto-refreshing appointment slots');
+        console.log('Auto-refreshing appointment slots for real-time updates');
         fetchBookedSlots(selectedDate, true); // true flag for silent refresh
-      }, 15000); // 15 seconds interval
+      }, 10000); // 10 seconds interval (reduced from 15 for faster updates)
 
       // Listen for app state changes
       const subscription = AppState.addEventListener('change', nextAppState => {
@@ -219,7 +219,9 @@ const BookAppointmentScreen = () => {
           nextAppState === 'active'
         ) {
           // App has come to the foreground - refresh immediately
-          console.log('App returned to foreground, refreshing slots');
+          console.log(
+            'App returned to foreground, refreshing slots immediately',
+          );
           fetchBookedSlots(selectedDate);
         }
         appStateRef.current = nextAppState;
@@ -227,13 +229,16 @@ const BookAppointmentScreen = () => {
 
       // Cleanup function
       return () => {
-        clearInterval(refreshIntervalRef.current);
-        subscription.remove();
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current);
+        }
+        subscription?.remove();
       };
     }
   }, [selectedDate, doctor?.id]);
 
-  // Modify fetchBookedSlots to support silent refresh
+  // Update the fetchBookedSlots function
+
   const fetchBookedSlots = async (date, silent = false) => {
     try {
       // Only show loading indicator if not a silent refresh
@@ -241,80 +246,99 @@ const BookAppointmentScreen = () => {
         setLoadingSlots(true);
       }
 
+      console.log(
+        `Fetching booked slots for ${date.toISOString().split('T')[0]} (User: ${
+          user?.id
+        })`,
+      );
+
       const response = await appointmentService.getAvailableSlots(
         doctor.id,
         date,
       );
 
       if (response.success) {
-        console.log(
-          'Server returned booked slots (UTC):',
-          response.bookedSlots,
-        );
+        console.log('Server returned booked slots:', {
+          utcSlots: response.bookedSlots,
+          totalBookings: response.totalBookings,
+          requestedBy: response.requestedBy,
+          timestamp: response.timestamp,
+        });
 
-        // Extract previous booked slots for comparison
+        // Store the previous booked slots for comparison
         const previousBookedSlots = [...bookedSlots];
 
         // Convert UTC booked slots to local time formats that match your UI
         const localBookedTimes = [];
 
-        response.bookedSlots.forEach(utcTime => {
-          // Your existing conversion code...
-          const [utcHours, utcMinutes] = utcTime
-            .split(':')
-            .map(part => parseInt(part, 10));
+        if (response.bookedSlots && Array.isArray(response.bookedSlots)) {
+          response.bookedSlots.forEach(utcTime => {
+            // Convert UTC time to local display format
+            const [utcHours, utcMinutes] = utcTime
+              .split(':')
+              .map(part => parseInt(part, 10));
 
-          const localDate = new Date(date);
-          localDate.setUTCHours(utcHours, utcMinutes, 0, 0);
+            const localDate = new Date(date);
+            localDate.setUTCHours(utcHours, utcMinutes, 0, 0);
 
-          let localHour = localDate.getHours();
-          const localMinute = localDate.getMinutes();
-          const period = localHour >= 12 ? 'PM' : 'AM';
+            let localHour = localDate.getHours();
+            const localMinute = localDate.getMinutes();
+            const period = localHour >= 12 ? 'PM' : 'AM';
 
-          localHour = localHour % 12;
-          if (localHour === 0) localHour = 12;
+            localHour = localHour % 12;
+            if (localHour === 0) localHour = 12;
 
-          const formattedLocalTime = `${localHour}:${
-            localMinute === 0 ? '00' : localMinute
-          } ${period}`;
+            const formattedLocalTime = `${localHour}:${
+              localMinute === 0 ? '00' : localMinute
+            } ${period}`;
+            localBookedTimes.push(formattedLocalTime);
+          });
 
-          localBookedTimes.push(formattedLocalTime);
-        });
-
-        // Check if there are new bookings
-        const newBookings = localBookedTimes.filter(
-          time => !previousBookedSlots.includes(time),
-        );
-
-        // If there are new bookings and this isn't the initial load, show an alert
-        if (
-          newBookings.length > 0 &&
-          previousBookedSlots.length > 0 &&
-          !silent
-        ) {
-          Alert.alert(
-            'Booking Update',
-            `Some time slots have just been booked: ${newBookings.join(', ')}`,
-            [{text: 'OK'}],
+          // Check for newly booked slots
+          const newBookings = localBookedTimes.filter(
+            time => !previousBookedSlots.includes(time),
           );
-        }
 
-        // If the selected time slot is now booked, clear the selection
-        if (selectedTime && localBookedTimes.includes(selectedTime)) {
-          setSelectedTime(null);
-          if (!silent) {
+          // If there are new bookings and this isn't the initial load, show an alert
+          if (
+            newBookings.length > 0 &&
+            previousBookedSlots.length > 0 &&
+            !silent
+          ) {
             Alert.alert(
-              'Time Slot No Longer Available',
-              'The time slot you selected has been booked by someone else. Please select another time.',
+              'Booking Update',
+              `Some time slots have just been booked: ${newBookings.join(
+                ', ',
+              )}`,
               [{text: 'OK'}],
             );
           }
-        }
 
-        setBookedSlots(localBookedTimes);
+          // If the selected time slot is now booked, clear the selection
+          if (selectedTime && localBookedTimes.includes(selectedTime)) {
+            setSelectedTime(null);
+            if (!silent) {
+              Alert.alert(
+                'Time Slot No Longer Available',
+                'The time slot you selected has been booked by someone else. Please select another time.',
+                [{text: 'OK'}],
+              );
+            }
+          }
+
+          console.log(
+            `Converted to local times: ${localBookedTimes.length} slots`,
+            localBookedTimes,
+          );
+          setBookedSlots(localBookedTimes);
+        } else {
+          console.log('No booked slots found');
+          setBookedSlots([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching booked slots:', error);
+      // Don't clear booked slots on error to prevent showing false availability
     } finally {
       if (!silent) {
         setLoadingSlots(false);
