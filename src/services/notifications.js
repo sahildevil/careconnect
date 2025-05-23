@@ -31,7 +31,12 @@ notificationApi.interceptors.request.use(
 );
 
 class NotificationService {
-  // Initialize the service (Android only)
+  constructor() {
+    this.isInitialized = false;
+    this.fcmToken = null;
+  }
+
+  // Initialize the service - but don't register token until authenticated
   async init() {
     try {
       // Only for Android
@@ -46,15 +51,23 @@ class NotificationService {
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
       if (!enabled) {
-        console.log('User has rejected permissions');
+        console.log('User has rejected notification permissions');
         return false;
       }
 
+      // Get FCM token but don't register with server yet
+      const token = await messaging().getToken();
+      console.log('FCM token:', token);
+      this.fcmToken = token;
+      
+      // Store token locally
+      await AsyncStorage.setItem('fcmToken', token);
+
       // Register handlers
       this.registerMessageHandlers();
-
-      // Get and store FCM token but don't register with server yet
-      await this.getFCMToken();
+      
+      this.isInitialized = true;
+      console.log('Notification service initialized (token registration pending authentication)');
 
       return true;
     } catch (error) {
@@ -63,14 +76,25 @@ class NotificationService {
     }
   }
 
-  // Get FCM token and store locally (don't register with server yet)
-  async getFCMToken() {
+  // Register FCM token with server - call this after user authentication
+  async registerDeviceToken() {
     try {
-      const token = await messaging().getToken();
-      console.log('FCM token obtained:', token);
+      // Check if user is authenticated
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.log('No auth token found, skipping device registration');
+        return false;
+      }
+
+      // Use stored FCM token or get a new one
+      let fcmToken = this.fcmToken || await messaging().getToken();
       
-      // Store this token locally
-      await AsyncStorage.setItem('fcmToken', token);
+      if (!fcmToken) {
+        console.error('No FCM token available for registration');
+        return false;
+      }
+
+      console.log('Registering device token with server...');
 
       // Listen for token refresh
       return messaging().onTokenRefresh(async newToken => {
@@ -107,24 +131,66 @@ class NotificationService {
         '/notifications/register-device',
         {
           token: fcmToken,
-          device_type: 'android',
+          device_type: Platform.OS,
         },
       );
 
       console.log('Device registered for notifications:', response.data);
+
+      // Listen for token refresh
+      const unsubscribe = messaging().onTokenRefresh(async newToken => {
+        console.log('FCM token refreshed:', newToken);
+        this.fcmToken = newToken;
+        await AsyncStorage.setItem('fcmToken', newToken);
+        
+        // Only re-register if user is still authenticated
+        const authToken = await AsyncStorage.getItem('token');
+        if (authToken) {
+          await notificationApi.post('/notifications/register-device', {
+            token: newToken,
+            device_type: Platform.OS,
+          });
+        }
+      });
+
+      return unsubscribe;
     } catch (error) {
       console.error('Failed to register device token:', error);
-      // Don't throw error, just log it
+      
+      // If it's an authentication error, don't throw - just log
+      if (error.response && error.response.status === 401) {
+        console.log('Authentication required for device registration - will retry after login');
+        return false;
+      }
+      
+      throw error;
     }
   }
 
   // Call this method after successful login
-  async registerDeviceAfterLogin() {
+  async onUserAuthenticated() {
     try {
-      console.log('Registering device after login...');
-      await this.registerDeviceTokenIfAuthenticated();
+      if (this.isInitialized) {
+        console.log('User authenticated, registering device token...');
+        await this.registerDeviceToken();
+      } else {
+        console.log('Notification service not initialized, initializing now...');
+        await this.init();
+        await this.registerDeviceToken();
+      }
     } catch (error) {
-      console.error('Failed to register device after login:', error);
+      console.error('Error during post-authentication notification setup:', error);
+    }
+  }
+
+  // Call this method during logout
+  async onUserLoggedOut() {
+    try {
+      console.log('User logged out, clearing notification registration');
+      this.fcmToken = null;
+      // Note: We keep the FCM token in AsyncStorage for next login
+    } catch (error) {
+      console.error('Error during logout notification cleanup:', error);
     }
   }
 
@@ -197,7 +263,19 @@ class NotificationService {
           if (relatedId) {
             return {
               screen: 'AppointmentDetail',
-              params: {appointmentId: relatedId},
+              params: {appointmentId: relatedId}
+            };
+          }
+          break;
+          
+        case 'appointment_reminder':
+          if (relatedId) {
+            return {
+              screen: 'AppointmentDetail',
+              params: {
+                appointmentId: relatedId,
+                fromReminder: true
+              }
             };
           }
           break;
@@ -205,7 +283,7 @@ class NotificationService {
         default:
           return {
             screen: 'Notifications',
-            params: {},
+            params: {}
           };
       }
     } catch (error) {

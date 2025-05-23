@@ -15,13 +15,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const AppointmentDetailScreen = () => {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const {userType} = useAuth();
   const [directionsLoading, setDirectionsLoading] = useState(false);
-
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -35,6 +36,20 @@ const AppointmentDetailScreen = () => {
     } else {
       setLoading(false);
       Alert.alert('Error', 'No appointment information provided');
+    }
+
+    // If coming from reminder, show directions option
+    if (route.params.fromReminder && route.params.appointment) {
+      setTimeout(() => {
+        Alert.alert(
+          'Appointment Reminder',
+          'Your appointment is in 1 hour. Would you like directions to the clinic?',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Get Directions', onPress: handleGetDirections }
+          ]
+        );
+      }, 500);
     }
   }, [route.params]);
 
@@ -291,7 +306,7 @@ const AppointmentDetailScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}>

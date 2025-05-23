@@ -19,6 +19,7 @@ import {doctorService} from '../../services/api';
 import Geolocation from 'react-native-geolocation-service';
 import { useAuth } from '../../context/AuthContext';
 import { calculateHaversineDistance, calculateRouteDistances } from '../../utils/geoUtils';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const DoctorListScreen = () => {
   const [doctors, setDoctors] = useState([]);
@@ -33,7 +34,7 @@ const DoctorListScreen = () => {
   const [sortBy, setSortBy] = useState('distance'); // 'distance' or 'rating'
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [useRouteDistance, setUseRouteDistance] = useState(false);
-  
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
@@ -345,7 +346,7 @@ const DoctorListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}>
