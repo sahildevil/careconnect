@@ -41,12 +41,15 @@ export const AuthProvider = ({children}) => {
         try {
           const isValid = await validateToken(tokenData);
           if (isValid) {
-            setUser(parsedUserData);
+            setUser(parsedUserData); // This should trigger isAuthenticated to become true
             setUserType(userTypeData);
             console.log(
               'User session restored successfully:',
               parsedUserData.id,
             );
+
+            // Force isAuthenticated to update immediately
+            return true;
           } else {
             // If token validation fails, clear stored data
             console.log('Stored token is invalid, clearing session data');
@@ -60,25 +63,80 @@ export const AuthProvider = ({children}) => {
       } else {
         console.log('Missing required session data');
       }
+      return false;
     } catch (error) {
       console.error('Error loading user data:', error);
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  // Add a token validation function
+  // Replace the validateToken function
   const validateToken = async token => {
     try {
-      // Use the profile endpoint as a way to validate the token
-      const response = await fetch(`${API_URL}/auth/validate-token`, {
+      console.log('Validating token...');
+
+      if (!token || token.length < 10) {
+        console.log('Invalid token format');
+        return false;
+      }
+
+      // Get the user data we already have
+      const userString = await AsyncStorage.getItem('user');
+      if (!userString) {
+        console.log('No user data found for validation');
+        return false;
+      }
+
+      const userData = JSON.parse(userString);
+
+      // Try fetching user profile with ID as a validation test
+      const response = await fetch(`${API_URL}/auth/profile/${userData.id}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
-      return response.status === 200;
+      if (response.status === 200) {
+        const data = await response.json();
+        console.log('Token valid, profile retrieved successfully');
+
+        // Ensure user data is up to date with latest from server
+        if (data.success && data.user) {
+          // Update local storage with latest user data
+          await AsyncStorage.setItem('user', JSON.stringify(data.user));
+          setUser(data.user);
+        } else {
+          // Use existing user data if the API doesn't return updated user info
+          setUser(userData);
+        }
+        return true;
+      }
+
+      // Fallback validation - try a simpler endpoint
+      try {
+        const fallbackResponse = await fetch(`${API_URL}/auth/validate-token`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (fallbackResponse.status === 200) {
+          console.log('Token validated using fallback endpoint');
+          setUser(userData);
+          return true;
+        }
+      } catch (fallbackError) {
+        console.log('Fallback validation also failed');
+      }
+
+      console.log('Token validation failed with status:', response.status);
+      return false;
     } catch (error) {
       console.error('Token validation error:', error);
       return false;

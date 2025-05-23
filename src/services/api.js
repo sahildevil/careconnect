@@ -67,6 +67,39 @@ api.interceptors.response.use(
   },
 );
 
+// Add this to your API interceptors
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    // Check if error is due to an expired token (401)
+    if (error.response && error.response.status === 401) {
+      console.log('Unauthorized error - attempting token refresh');
+
+      try {
+        // Get current user data
+        const userString = await AsyncStorage.getItem('user');
+        if (userString) {
+          // Force logout and redirect to login
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+          await AsyncStorage.removeItem('userType');
+
+          // Alert the user that they need to log in again
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please log in again.',
+            [{text: 'OK'}],
+          );
+        }
+      } catch (refreshError) {
+        console.error('Error handling token refresh:', refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 // Auth services
 export const authService = {
   login: async (email, password, userType) => {
@@ -324,36 +357,26 @@ export const appointmentService = {
 
       // Add debugging information
       console.log('Fetching appointments for patient ID:', userData.id);
-      console.log(
-        'Token status:',
-        (await AsyncStorage.getItem('token')) ? 'Present' : 'Missing',
-      );
 
-      const response = await api.get(
-        `/appointments/patient?user_id=${userData.id}`,
-      );
+      // Ensure token is included
+      const token = await AsyncStorage.getItem('token');
+      console.log('Token status:', token ? 'Present' : 'Missing');
 
-      // Add more detailed logging
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Make the API call - Don't send the user_id in query, rely on auth header
+      const response = await api.get(`/appointments/patient`);
+
       console.log(
         `Received ${
           response.data?.appointments?.length || 0
         } appointments from server`,
       );
-      if (response.data?.appointments?.length > 0) {
-        console.log('First appointment:', {
-          id: response.data.appointments[0].id,
-          date: response.data.appointments[0].appointment_date,
-          status: response.data.appointments[0].status,
-        });
-      }
-
       return response.data;
     } catch (error) {
       console.error('Error in getPatientAppointments:', error);
-      console.error(
-        'Network status:',
-        error.response ? `HTTP ${error.response.status}` : 'No response',
-      );
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
@@ -415,15 +438,21 @@ export const appointmentService = {
     }
   },
 
-  approveAppointment: async (appointmentId, approved, rejectionReason = null) => {
+  approveAppointment: async (
+    appointmentId,
+    approved,
+    rejectionReason = null,
+  ) => {
     try {
-      console.log(`${approved ? 'Approving' : 'Rejecting'} appointment ${appointmentId}`);
-      
+      console.log(
+        `${approved ? 'Approving' : 'Rejecting'} appointment ${appointmentId}`,
+      );
+
       const response = await api.put(`/appointments/${appointmentId}/approve`, {
         approved,
-        notes: rejectionReason
+        notes: rejectionReason,
       });
-      
+
       console.log('Approval response:', response.data);
       return response.data;
     } catch (error) {
