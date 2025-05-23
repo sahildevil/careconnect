@@ -1,6 +1,6 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState, useMemo} from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
-import {ActivityIndicator, View, StyleSheet} from 'react-native';
+import {ActivityIndicator, View, StyleSheet, AppState} from 'react-native';
 import {useAuth} from '../context/AuthContext';
 
 // Auth Screens
@@ -107,36 +107,79 @@ const DoctorNavigator = () => {
 
 const AppNavigator = () => {
   const auth = useAuth();
-  const {loading, userType, user} = auth;
-  const isAuthenticated = !!user; // Directly calculate isAuthenticated from user
+  const {
+    loading,
+    userType,
+    user,
+    isAuthenticated,
+    isInitialized,
+    refreshAuthState,
+  } = auth;
+  const [appState, setAppState] = useState(AppState.currentState);
 
-  // Add console log for debugging
+  // Handle app state changes
+  useEffect(() => {
+    const handleAppStateChange = nextAppState => {
+      console.log(
+        'AppNavigator - AppState changed:',
+        appState,
+        '->',
+        nextAppState,
+      );
+
+      if (
+        appState.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        isInitialized
+      ) {
+        console.log('App resumed, refreshing auth state...');
+        refreshAuthState();
+      }
+
+      setAppState(nextAppState);
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+    return () => subscription?.remove();
+  }, [appState, isInitialized, refreshAuthState]);
+
+  // Debug logging
   useEffect(() => {
     console.log('AppNavigator - Auth state:', {
-      isAuthenticated: !!user, // Calculate directly from user state
+      isAuthenticated,
       userType,
       userId: user?.id,
       loading,
+      isInitialized,
     });
-  }, [user, userType, loading]);
+  }, [user, userType, loading, isAuthenticated, isInitialized]);
 
-  // Add a check for doctor needing onboarding
-  const needsDoctorOnboarding = React.useMemo(() => {
+  // ALWAYS call useMemo - move it before any conditional returns
+  const needsDoctorOnboarding = useMemo(() => {
     if (isAuthenticated && userType === 'doctor' && user) {
       return !user.profile || user.profile.onboarding_complete === false;
     }
     return false;
   }, [isAuthenticated, userType, user]);
 
-  // Inside your AppNavigator component
-  useEffect(() => {
-    // Add this for better debugging
-    if (!isAuthenticated && !loading) {
-      console.log('User is not authenticated, navigating to auth screens');
+  // ALWAYS call useMemo for initial route - move it here too
+  const initialRoute = useMemo(() => {
+    if (!isAuthenticated) {
+      return 'Auth';
     }
-  }, [isAuthenticated, loading]);
 
-  if (loading) {
+    if (userType === 'doctor') {
+      return needsDoctorOnboarding ? 'DoctorOnboarding' : 'DoctorFlow';
+    } else {
+      return 'PatientFlow';
+    }
+  }, [isAuthenticated, userType, needsDoctorOnboarding]);
+
+  // Wait for initialization - this conditional return comes AFTER all hooks
+  if (!isInitialized || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0CB69B" />
@@ -144,17 +187,7 @@ const AppNavigator = () => {
     );
   }
 
-  // Determine the initial route based on authentication and onboarding state
-  let initialRoute = 'Auth';
-  if (isAuthenticated) {
-    if (userType === 'doctor') {
-      initialRoute = needsDoctorOnboarding ? 'DoctorOnboarding' : 'DoctorFlow';
-    } else {
-      initialRoute = 'PatientFlow';
-    }
-  }
-
-  console.log('Initial route selected:', initialRoute);
+  console.log('AppNavigator - Initial route selected:', initialRoute);
 
   return (
     <Stack.Navigator
