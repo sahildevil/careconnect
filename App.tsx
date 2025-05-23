@@ -1,24 +1,39 @@
 import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
-import AppNavigator from './src/navigation/AppNavigator';
 import {AuthProvider} from './src/context/AuthContext';
 import {AppointmentProvider} from './src/context/AppointmentContext';
-import 'react-native-gesture-handler';
+import AppNavigator from './src/navigation/AppNavigator';
 import {notificationService} from './src/services/notifications';
 
 const App = () => {
   useEffect(() => {
-    const initializeNotifications = async () => {
+    const initializeApp = async () => {
       try {
-        console.log('Initializing notification service...');
-        await notificationService.init();
-        console.log('Notification service initialized successfully');
+        console.log(
+          'App started, waiting before initializing notifications...',
+        );
+
+        // Wait for the app to be fully loaded before initializing notifications
+        setTimeout(async () => {
+          try {
+            console.log('Initializing notification service...');
+
+            // Only initialize basic FCM setup, not full permissions
+            // Full permission request will happen when user interacts with the app
+            await notificationService.registerMessageHandlers();
+          } catch (error) {
+            console.error(
+              'Failed to initialize basic notification setup:',
+              error,
+            );
+          }
+        }, 3000); // Wait 3 seconds after app start
       } catch (error) {
-        console.error('Failed to initialize notification service:', error);
+        console.error('Failed to initialize app:', error);
       }
     };
 
-    initializeNotifications();
+    initializeApp();
   }, []);
 
   return (

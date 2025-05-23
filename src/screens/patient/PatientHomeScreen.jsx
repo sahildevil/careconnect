@@ -13,7 +13,7 @@ import {
   Platform,
   Alert,
   PermissionsAndroid,
-  RefreshControl, 
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -25,7 +25,29 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import Geolocation from 'react-native-geolocation-service';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import { useAppointments } from '../../context/AppointmentContext';
+import {useAppointments} from '../../context/AppointmentContext';
+import {notificationService} from '../../services/notifications';
+
+// Add this component near the top of your file, after the imports
+const NotificationPromptBanner = ({onDismiss, onEnable}) => (
+  <View style={styles.notificationBanner}>
+    <View style={styles.bannerContent}>
+      <Icon name="notifications-outline" size={20} color="#0CB69B" />
+      <View style={styles.bannerText}>
+        <Text style={styles.bannerTitle}>Enable Notifications</Text>
+        <Text style={styles.bannerSubtitle}>Get appointment reminders</Text>
+      </View>
+    </View>
+    <View style={styles.bannerActions}>
+      <TouchableOpacity onPress={onDismiss} style={styles.dismissButton}>
+        <Text style={styles.dismissText}>Later</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onEnable} style={styles.enableButton}>
+        <Text style={styles.enableText}>Enable</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
 
 // Updated specialties array with all categories
 const specialties = [
@@ -43,15 +65,20 @@ const specialties = [
 
 const PatientHomeScreen = () => {
   // Get appointments from context instead of local state
-  const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments();
+  const {
+    appointments,
+    loading: appointmentsLoading,
+    fetchAppointments,
+  } = useAppointments();
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [popularDoctors, setPopularDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const {user} = useAuth();
   const insets = useSafeAreaInsets();
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
   // Initial fetch
   useEffect(() => {
@@ -59,6 +86,11 @@ const PatientHomeScreen = () => {
     setTimeout(() => {
       requestLocationPermission();
     }, 1000);
+
+    // Check notification permissions after a delay
+    setTimeout(() => {
+      checkNotificationPermissions();
+    }, 3000);
   }, []);
 
   // Process appointments from context whenever they change
@@ -68,16 +100,20 @@ const PatientHomeScreen = () => {
     const futureAppointments = appointments
       .filter(app => {
         const appointmentDate = new Date(app.appointment_date);
-        
+
         // Only show future appointments that are pending or confirmed (not completed, cancelled)
-        return appointmentDate >= now && 
-              app.status !== 'completed' && 
-              app.status !== 'cancelled' && 
-              app.status !== 'canceled';
+        return (
+          appointmentDate >= now &&
+          app.status !== 'completed' &&
+          app.status !== 'cancelled' &&
+          app.status !== 'canceled'
+        );
       })
-      .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
+      .sort(
+        (a, b) => new Date(a.appointment_date) - new Date(b.appointment_date),
+      )
       .slice(0, 5); // Limit to 5 appointments
-    
+
     setUpcomingAppointments(futureAppointments);
   }, [appointments]);
 
@@ -91,7 +127,7 @@ const PatientHomeScreen = () => {
       if (doctorsResponse.success) {
         setPopularDoctors(doctorsResponse.doctors.slice(0, 5));
       }
-      
+
       // Refresh appointments from context
       await fetchAppointments();
     } catch (error) {
@@ -108,7 +144,7 @@ const PatientHomeScreen = () => {
     try {
       // Refresh appointments from context
       await fetchAppointments();
-      
+
       // Fetch popular doctors
       const doctorsResponse = await doctorService.getAllDoctors();
       if (doctorsResponse.success) {
@@ -132,7 +168,7 @@ const PatientHomeScreen = () => {
     return unsubscribe;
   }, [navigation, fetchAppointments]);
 
-  // Request location permission using the native dialog
+  // Request location permission using the native dialog - KEEP ONLY THIS ONE
   const requestLocationPermission = async () => {
     // Check if user is defined and has an ID
     if (!user || !user.id) {
@@ -239,11 +275,69 @@ const PatientHomeScreen = () => {
     );
   };
 
+  // Update the checkNotificationPermissions function
+  const checkNotificationPermissions = async () => {
+    try {
+      // Add a delay to ensure the screen is fully rendered
+      setTimeout(async () => {
+        try {
+          const permissions = await notificationService.hasPermissions();
+
+          if (!permissions.overall) {
+            // Show banner instead of immediate alert
+            setShowNotificationBanner(true);
+          } else {
+            console.log('Notification permissions already granted');
+            setShowNotificationBanner(false);
+
+            if (user) {
+              await notificationService.onUserAuthenticated();
+            }
+          }
+        } catch (error) {
+          console.error('Error checking notification permissions:', error);
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('Error in checkNotificationPermissions:', error);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    try {
+      setShowNotificationBanner(false);
+
+      // Add a small delay before requesting permissions
+      setTimeout(async () => {
+        try {
+          const granted = await notificationService.init();
+          if (granted && user) {
+            await notificationService.onUserAuthenticated();
+            console.log('Notifications enabled successfully');
+          } else {
+            console.log('Failed to enable notifications');
+            // Show banner again if permission failed
+            setTimeout(() => {
+              setShowNotificationBanner(true);
+            }, 1000);
+          }
+        } catch (error) {
+          console.error('Error enabling notifications:', error);
+          // Show banner again if there was an error
+          setTimeout(() => {
+            setShowNotificationBanner(true);
+          }, 1000);
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Error in handleEnableNotifications:', error);
+    }
+  };
+
   const renderAppointmentItem = ({item}) => {
     // Get doctor data consistently
     const doctorData = item.doctor || item.doctors || {};
 
-    // Format date and time
     const appointmentDate = new Date(item.appointment_date);
     const formattedDate = appointmentDate.toLocaleDateString('en-US', {
       month: 'short',
@@ -445,6 +539,14 @@ const PatientHomeScreen = () => {
         </SafeAreaView>
       </View>
 
+      {/* Add notification banner */}
+      {showNotificationBanner && (
+        <NotificationPromptBanner
+          onDismiss={() => setShowNotificationBanner(false)}
+          onEnable={handleEnableNotifications}
+        />
+      )}
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
@@ -562,6 +664,7 @@ const PatientHomeScreen = () => {
   );
 };
 
+// ... existing styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -859,6 +962,56 @@ const styles = StyleSheet.create({
   doctorSpecialtyText: {
     fontSize: 12,
     color: '#888',
+  },
+  notificationBanner: {
+    backgroundColor: '#E6F8F6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bannerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bannerText: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    color: '#666',
+  },
+  bannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dismissButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  dismissText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  enableButton: {
+    backgroundColor: '#0CB69B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  enableText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
   },
 });
 
