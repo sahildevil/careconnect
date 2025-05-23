@@ -24,12 +24,19 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import Geolocation from 'react-native-geolocation-service';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// Updated specialties array with all categories
 const specialties = [
-  {id: 1, name: 'Dentist', icon: 'medical'},
-  {id: 2, name: 'Cardiology', icon: 'heart'},
+  {id: 1, name: 'Cardiology', icon: 'heart'},
+  {id: 2, name: 'Dermatology', icon: 'body'},
   {id: 3, name: 'Neurology', icon: 'brain'},
-  {id: 4, name: 'Orthopedic', icon: 'body'},
-  {id: 5, name: 'Kidney Sp.', icon: 'water'},
+  {id: 4, name: 'Orthopedics', icon: 'fitness'},
+  {id: 5, name: 'Pediatrics', icon: 'people'},
+  {id: 6, name: 'Psychiatry', icon: 'chatbubbles'},
+  {id: 7, name: 'Gynecology', icon: 'female'},
+  {id: 8, name: 'Eye', icon: 'eye'},
+  {id: 9, name: 'Dentist', icon: 'medical'},
+  {id: 10, name: 'General Medicine', icon: 'medkit'},
 ];
 
 const PatientHomeScreen = () => {
@@ -251,12 +258,35 @@ const PatientHomeScreen = () => {
     </TouchableOpacity>
   );
 
+  // Function to get different colors for specialty icons
+  const getSpecialtyColor = specialty => {
+    const colorMap = {
+      Cardiology: '#FF6B6B',
+      Dermatology: '#6BCB77',
+      Neurology: '#4D96FF',
+      Orthopedics: '#FFD93D',
+      Pediatrics: '#FF9A8C',
+      Psychiatry: '#7882A4',
+      Gynecology: '#F78CAB',
+      Eye: '#5FBDFF',
+      Dentist: '#0CB69B',
+      'General Medicine': '#5F7ADB',
+      Other: '#8D8DAA',
+    };
+
+    return colorMap[specialty] || '#0CB69B';
+  };
+
   const renderSpecialtyItem = ({item}) => (
     <TouchableOpacity
       style={styles.specialtyItem}
       onPress={() => navigation.navigate('DoctorList', {specialty: item.name})}>
-      <View style={[styles.specialtyIcon, {backgroundColor: '#E6F8F6'}]}>
-        <Icon name={item.icon} size={24} color="#0CB69B" />
+      <View
+        style={[
+          styles.specialtyIcon,
+          {backgroundColor: getSpecialtyColor(item.name)},
+        ]}>
+        <Icon name={item.icon} size={22} color="#FFFFFF" />
       </View>
       <Text style={styles.specialtyText}>{item.name}</Text>
     </TouchableOpacity>
@@ -360,6 +390,8 @@ const PatientHomeScreen = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.specialtyContainer}
+            initialNumToRender={7}
+            maxToRenderPerBatch={10}
           />
 
           {/* Popular Doctors */}
@@ -543,24 +575,33 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   specialtyContainer: {
-    paddingLeft: 20,
+    paddingLeft: 15,
+    paddingRight: 15,
+    paddingVertical: 10,
   },
   specialtyItem: {
     alignItems: 'center',
-    marginRight: 20,
+    marginRight: 14,
+    width: 70, // Fixed width for consistency
   },
   specialtyIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 55,
+    height: 55,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
   },
   specialtyText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#333',
-  },
+  marginTop: 4,
+  fontSize: 12,
+  textAlign: 'center',
+  color: '#333',
+  width: 80, // Increased width to fit longer words
+  whiteSpace: 'nowrap', // Prevent line break
+  overflow: 'hidden',    // Hide overflow
+  textOverflow: 'ellipsis', // Show ellipsis if text overflows
+},
   doctorCard: {
     backgroundColor: '#fff',
     borderRadius: 15,
