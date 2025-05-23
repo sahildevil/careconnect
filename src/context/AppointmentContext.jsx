@@ -18,7 +18,14 @@ export const AppointmentProvider = ({ children }) => {
       const response = await appointmentService.getPatientAppointments();
       
       if (response.success) {
-        setAppointments(response.appointments);
+        // Sort appointments by creation date (newest first)
+        const sortedAppointments = response.appointments.sort((a, b) => {
+          const aCreated = a.created_at ? new Date(a.created_at) : new Date(a.appointment_date);
+          const bCreated = b.created_at ? new Date(b.created_at) : new Date(b.appointment_date);
+          return bCreated - aCreated;
+        });
+        
+        setAppointments(sortedAppointments);
       } else {
         setError('Failed to fetch appointments');
       }
@@ -45,7 +52,16 @@ export const AppointmentProvider = ({ children }) => {
         return prevAppointments;
       }
       
-      return [newAppointment, ...prevAppointments];
+      // Add the new appointment at the beginning of the array
+      // This ensures the newest appointment is always first
+      const updatedAppointments = [newAppointment, ...prevAppointments];
+      
+      // Sort by creation date (newest first)
+      return updatedAppointments.sort((a, b) => {
+        const aCreated = a.created_at ? new Date(a.created_at) : new Date(a.appointment_date);
+        const bCreated = b.created_at ? new Date(b.created_at) : new Date(b.appointment_date);
+        return bCreated - aCreated;
+      });
     });
   }, []);
 

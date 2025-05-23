@@ -63,22 +63,34 @@ const PatientHomeScreen = () => {
 
   // Process appointments from context whenever they change
   useEffect(() => {
-    // Filter for future appointments
-    const now = new Date();
-    const futureAppointments = appointments
-      .filter(app => {
-        const appointmentDate = new Date(app.appointment_date);
+    if (appointments.length > 0) {
+      const futureAppointments = appointments
+        .filter(app => {
+          const appointmentDate = new Date(app.appointment_date);
+          const now = new Date();
+          
+          // Only show future appointments that are pending or confirmed (not completed, cancelled)
+          return appointmentDate >= now && 
+                 app.status !== 'completed' && 
+                 app.status !== 'cancelled' && 
+                 app.status !== 'canceled';
+        });
+      
+      // Sort appointments by creation date (newest first)
+      futureAppointments.sort((a, b) => {
+        // First check for created_at field
+        const aCreated = a.created_at ? new Date(a.created_at) : new Date(a.appointment_date);
+        const bCreated = b.created_at ? new Date(b.created_at) : new Date(b.appointment_date);
         
-        // Only show future appointments that are pending or confirmed (not completed, cancelled)
-        return appointmentDate >= now && 
-              app.status !== 'completed' && 
-              app.status !== 'cancelled' && 
-              app.status !== 'canceled';
-      })
-      .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
-      .slice(0, 5); // Limit to 5 appointments
-    
-    setUpcomingAppointments(futureAppointments);
+        // Sort in descending order (newest first)
+        return bCreated - aCreated;
+      });
+      
+      // Limit to 5 appointments
+      setUpcomingAppointments(futureAppointments.slice(0, 5));
+    } else {
+      setUpcomingAppointments([]);
+    }
   }, [appointments]);
 
   // Modify fetchData to only fetch doctors, as appointments come from context

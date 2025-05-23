@@ -91,12 +91,14 @@ const PatientAppointmentsScreen = () => {
     }
   };
 
-  // Update the getFilteredAppointments function to show pending appointments
+  // Update the getFilteredAppointments function to sort by date (newest first)
   const getFilteredAppointments = () => {
     const now = new Date();
 
+    let filteredAppointments = [];
+
     if (activeTab === 'upcoming') {
-      return appointments.filter(app => {
+      filteredAppointments = appointments.filter(app => {
         const appDate = new Date(app.appointment_date);
         return (
           appDate >= now &&
@@ -104,15 +106,26 @@ const PatientAppointmentsScreen = () => {
         );
       });
     } else if (activeTab === 'completed') {
-      return appointments.filter(app => app.status === 'completed');
+      filteredAppointments = appointments.filter(app => app.status === 'completed');
     } else if (activeTab === 'cancelled') {
       // Handle both spellings for backwards compatibility
-      return appointments.filter(
+      filteredAppointments = appointments.filter(
         app => app.status === 'canceled' || app.status === 'cancelled',
       );
+    } else {
+      filteredAppointments = [...appointments];
     }
 
-    return appointments;
+    // Sort appointments by creation date (newest first)
+    // If created_at isn't available, fall back to appointment_date
+    return filteredAppointments.sort((a, b) => {
+      // First check for created_at field
+      const aCreated = a.created_at ? new Date(a.created_at) : new Date(a.appointment_date);
+      const bCreated = b.created_at ? new Date(b.created_at) : new Date(b.appointment_date);
+      
+      // Sort in descending order (newest first)
+      return bCreated - aCreated;
+    });
   };
 
   // Update the appointment item to show pending status differently
