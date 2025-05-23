@@ -16,13 +16,19 @@ import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import {useNetInfo} from '@react-native-community/netinfo';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useAppointments} from '../../context/AppointmentContext';
 
 const PatientAppointmentsScreen = () => {
   const {user} = useAuth();
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    appointments,
+    loading: appointmentsLoading,
+    fetchAppointments,
+    cancelAppointment: contextCancelAppointment,
+  } = useAppointments();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const netInfo = useNetInfo();
   const insets = useSafeAreaInsets();
@@ -35,70 +41,19 @@ const PatientAppointmentsScreen = () => {
         'Please check your internet connection and try again.',
       );
     } else {
+      // Use the context's fetch function
       fetchAppointments();
     }
-  }, [netInfo.isConnected]);
+  }, [netInfo.isConnected, fetchAppointments]);
 
   useEffect(() => {
-    fetchAppointments();
-
     // Refresh appointments when the screen is focused
     const unsubscribe = navigation.addListener('focus', () => {
       fetchAppointments();
     });
 
     return unsubscribe;
-  }, []);
-
-  const fetchAppointments = async () => {
-    try {
-      if (!user || !user.id) {
-        console.error('No user ID available for fetching appointments');
-        Alert.alert('Error', 'Please login again to view your appointments');
-        return;
-      }
-
-      setLoading(true);
-      const response = await appointmentService.getPatientAppointments();
-
-      if (response.success) {
-        console.log(`Loaded ${response.appointments.length} appointments`);
-        setAppointments(response.appointments);
-      }
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
-      const errorMessage = error.message || 'Failed to load appointments';
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add a retry mechanism
-  const fetchAppointmentsWithRetry = async (retries = 2) => {
-    try {
-      setLoading(true);
-      const response = await appointmentService.getPatientAppointments();
-
-      if (response.success) {
-        console.log(`Loaded ${response.appointments.length} appointments`);
-        setAppointments(response.appointments);
-      }
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
-      if (retries > 0) {
-        console.log(`Retrying... (${retries} attempts left)`);
-        setTimeout(() => fetchAppointmentsWithRetry(retries - 1), 2000);
-      } else {
-        Alert.alert(
-          'Error',
-          'Failed to load appointments. Pull down to refresh.',
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [navigation, fetchAppointments]);
 
   const cancelAppointment = async appointmentId => {
     try {
@@ -119,15 +74,8 @@ const PatientAppointmentsScreen = () => {
               );
 
               if (response.success) {
-                // Update the appointment status locally
-                setAppointments(
-                  appointments.map(app => {
-                    if (app.id === appointmentId) {
-                      return {...app, status: 'cancelled'};
-                    }
-                    return app;
-                  }),
-                );
+                // Update the appointment status in context instead of local state
+                contextCancelAppointment(appointmentId);
                 Alert.alert('Success', 'Appointment cancelled successfully');
               } else {
                 Alert.alert('Error', 'Failed to cancel appointment');
@@ -247,7 +195,7 @@ const PatientAppointmentsScreen = () => {
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     fetchAppointments().finally(() => setRefreshing(false));
-  }, []);
+  }, [fetchAppointments]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -291,7 +239,7 @@ const PatientAppointmentsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
+      {appointmentsLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
         </View>

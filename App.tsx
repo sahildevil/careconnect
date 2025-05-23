@@ -2,6 +2,7 @@ import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import {AuthProvider} from './src/context/AuthContext';
+import {AppointmentProvider} from './src/context/AppointmentContext';
 import 'react-native-gesture-handler';
 import {notificationService} from './src/services/notifications';
 
@@ -22,9 +23,11 @@ const App = () => {
 
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
+      <AppointmentProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </AppointmentProvider>
     </AuthProvider>
   );
 };

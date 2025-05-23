@@ -25,6 +25,7 @@ import {
 import {useAuth} from '../../context/AuthContext';
 import Geolocation from 'react-native-geolocation-service';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import { useAppointments } from '../../context/AppointmentContext';
 
 // Updated specialties array with all categories
 const specialties = [
@@ -41,59 +42,58 @@ const specialties = [
 ];
 
 const PatientHomeScreen = () => {
+  // Get appointments from context instead of local state
+  const { appointments, loading: appointmentsLoading, fetchAppointments } = useAppointments();
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [popularDoctors, setPopularDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // Add refreshing state
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
-  const {user} = useAuth();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
 
+  // Initial fetch
   useEffect(() => {
     fetchData();
-    // Request location permission after a short delay
     setTimeout(() => {
       requestLocationPermission();
     }, 1000);
   }, []);
 
-  // Update the fetchData function to filter only pending appointments
+  // Process appointments from context whenever they change
+  useEffect(() => {
+    // Filter for future appointments
+    const now = new Date();
+    const futureAppointments = appointments
+      .filter(app => {
+        const appointmentDate = new Date(app.appointment_date);
+        
+        // Only show future appointments that are pending or confirmed (not completed, cancelled)
+        return appointmentDate >= now && 
+              app.status !== 'completed' && 
+              app.status !== 'cancelled' && 
+              app.status !== 'canceled';
+      })
+      .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
+      .slice(0, 5); // Limit to 5 appointments
+    
+    setUpcomingAppointments(futureAppointments);
+  }, [appointments]);
+
+  // Modify fetchData to only fetch doctors, as appointments come from context
   const fetchData = async () => {
     try {
       setLoading(true);
-
-      // Fetch upcoming appointments
-      const appointmentsResponse =
-        await appointmentService.getPatientAppointments();
-      if (appointmentsResponse.success) {
-        // Filter for future appointments that are NOT completed or cancelled
-        const futureAppointments = appointmentsResponse.appointments
-          .filter(app => {
-            const appointmentDate = new Date(app.appointment_date);
-            const now = new Date();
-            
-            // Only show future appointments that are pending or confirmed (not completed, cancelled)
-            return appointmentDate >= now && 
-                   app.status !== 'completed' && 
-                   app.status !== 'cancelled' && 
-                   app.status !== 'canceled';
-          });
-        
-        // Sort appointments by date (earliest to latest)
-        futureAppointments.sort((a, b) => {
-          return new Date(a.appointment_date) - new Date(b.appointment_date);
-        });
-        
-        // Limit to 5 appointments
-        setUpcomingAppointments(futureAppointments.slice(0, 5));
-      }
 
       // Fetch popular doctors
       const doctorsResponse = await doctorService.getAllDoctors();
       if (doctorsResponse.success) {
         setPopularDoctors(doctorsResponse.doctors.slice(0, 5));
       }
+      
+      // Refresh appointments from context
+      await fetchAppointments();
     } catch (error) {
       console.error('Error fetching data:', error);
       Alert.alert('Error', 'Failed to load data. Please try again.');
@@ -102,11 +102,18 @@ const PatientHomeScreen = () => {
     }
   };
 
-  // Add onRefresh function for pull-to-refresh
+  // Update onRefresh to use the context's fetchAppointments
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchData();
+      // Refresh appointments from context
+      await fetchAppointments();
+      
+      // Fetch popular doctors
+      const doctorsResponse = await doctorService.getAllDoctors();
+      if (doctorsResponse.success) {
+        setPopularDoctors(doctorsResponse.doctors.slice(0, 5));
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
       Alert.alert('Error', 'Failed to refresh data. Please try again.');
@@ -114,6 +121,16 @@ const PatientHomeScreen = () => {
       setRefreshing(false);
     }
   };
+
+  // Add a listener to refresh appointments when the screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('PatientHomeScreen focused, refreshing appointments...');
+      fetchAppointments();
+    });
+
+    return unsubscribe;
+  }, [navigation, fetchAppointments]);
 
   // Request location permission using the native dialog
   const requestLocationPermission = async () => {

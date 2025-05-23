@@ -15,6 +15,7 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
+import {useAppointments} from '../../context/AppointmentContext';
 import {
   BackButton,
   CustomButton,
@@ -92,6 +93,7 @@ const BookAppointmentScreen = () => {
   const route = useRoute();
   const {user} = useAuth();
   const {doctor} = route.params;
+  const { addAppointment } = useAppointments();
 
   // Add a new ref to track the refresh interval
   const refreshIntervalRef = useRef(null);
@@ -383,7 +385,7 @@ const BookAppointmentScreen = () => {
       const appointmentData = {
         patient_id: user.id,
         doctor_id: doctor.id,
-        appointment_date: appointmentDate.toISOString(), // This sends the date in UTC
+        appointment_date: appointmentDate.toISOString(), 
         reason: reason,
         appointment_type: 'consultation',
       };
@@ -395,10 +397,19 @@ const BookAppointmentScreen = () => {
 
       if (response.success) {
         // When booking is successful, add the selected time to the booked slots
-        // to immediately update the UI without requiring a refresh
         if (!bookedSlots.includes(selectedTime)) {
           setBookedSlots([...bookedSlots, selectedTime]);
         }
+
+        // Create a complete appointment object with doctor data
+        const newAppointment = {
+          ...response.appointment,
+          doctor: doctor, // Include doctor information for display
+          status: 'pending',
+        };
+        
+        // Add the new appointment to the context
+        addAppointment(newAppointment);
 
         Alert.alert(
           'Appointment Requested',
