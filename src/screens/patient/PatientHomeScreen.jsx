@@ -13,6 +13,7 @@ import {
   Platform,
   Alert,
   PermissionsAndroid,
+  RefreshControl, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -43,10 +44,12 @@ const PatientHomeScreen = () => {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [popularDoctors, setPopularDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // Add refreshing state
   const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
   const {user} = useAuth();
   const insets = useSafeAreaInsets();
+
   useEffect(() => {
     fetchData();
     // Request location permission after a short delay
@@ -55,7 +58,7 @@ const PatientHomeScreen = () => {
     }, 1000);
   }, []);
 
-  // Update the fetchData function to sort appointments by date
+  // Update the fetchData function to filter only pending appointments
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -64,9 +67,18 @@ const PatientHomeScreen = () => {
       const appointmentsResponse =
         await appointmentService.getPatientAppointments();
       if (appointmentsResponse.success) {
-        // Filter future appointments
+        // Filter for future appointments that are NOT completed or cancelled
         const futureAppointments = appointmentsResponse.appointments
-          .filter(app => new Date(app.appointment_date) >= new Date());
+          .filter(app => {
+            const appointmentDate = new Date(app.appointment_date);
+            const now = new Date();
+            
+            // Only show future appointments that are pending or confirmed (not completed, cancelled)
+            return appointmentDate >= now && 
+                   app.status !== 'completed' && 
+                   app.status !== 'cancelled' && 
+                   app.status !== 'canceled';
+          });
         
         // Sort appointments by date (earliest to latest)
         futureAppointments.sort((a, b) => {
@@ -84,8 +96,22 @@ const PatientHomeScreen = () => {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      Alert.alert('Error', 'Failed to load data. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Add onRefresh function for pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      Alert.alert('Error', 'Failed to refresh data. Please try again.');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -409,7 +435,17 @@ const PatientHomeScreen = () => {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          style={styles.contentContainer}>
+          style={styles.contentContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#0CB69B']} // Android
+              tintColor="#0CB69B" // iOS
+              title="Pull to refresh" // iOS
+              titleColor="#0CB69B" // iOS
+            />
+          }>
           {/* Today Appointments */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
@@ -470,7 +506,7 @@ const PatientHomeScreen = () => {
 
           {popularDoctors.map((doctor, index) => (
             <TouchableOpacity
-              key={doctor.id} // Use doctor.id as key
+              key={doctor.id}
               style={styles.doctorCard}
               onPress={() => navigation.navigate('DoctorDetail', {doctor})}>
               <View style={styles.popularDoctorInfo}>
