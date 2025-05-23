@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -92,6 +93,11 @@ const BookAppointmentScreen = () => {
   const {user} = useAuth();
   const {doctor} = route.params;
 
+  // Add a new ref to track the refresh interval
+  const refreshIntervalRef = useRef(null);
+  // Add ref for app state
+  const appStateRef = useRef(AppState.currentState);
+
   useEffect(() => {
     // Generate dates for the next 7 days (excluding today)
     const dates = [];
@@ -128,9 +134,48 @@ const BookAppointmentScreen = () => {
     }
   }, [selectedDate, doctor?.id]);
 
-  const fetchBookedSlots = async date => {
+  // Set up automatic refresh with cleanup
+  useEffect(() => {
+    // Start refresh interval when a date is selected
+    if (selectedDate && doctor?.id) {
+      // Initial fetch
+      fetchBookedSlots(selectedDate);
+
+      // Set up interval to check for updates every 15 seconds
+      refreshIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing appointment slots');
+        fetchBookedSlots(selectedDate, true); // true flag for silent refresh
+      }, 15000); // 15 seconds interval
+
+      // Listen for app state changes
+      const subscription = AppState.addEventListener('change', nextAppState => {
+        if (
+          appStateRef.current.match(/inactive|background/) &&
+          nextAppState === 'active'
+        ) {
+          // App has come to the foreground - refresh immediately
+          console.log('App returned to foreground, refreshing slots');
+          fetchBookedSlots(selectedDate);
+        }
+        appStateRef.current = nextAppState;
+      });
+
+      // Cleanup function
+      return () => {
+        clearInterval(refreshIntervalRef.current);
+        subscription.remove();
+      };
+    }
+  }, [selectedDate, doctor?.id]);
+
+  // Modify fetchBookedSlots to support silent refresh
+  const fetchBookedSlots = async (date, silent = false) => {
     try {
-      setLoadingSlots(true);
+      // Only show loading indicator if not a silent refresh
+      if (!silent) {
+        setLoadingSlots(true);
+      }
+
       const response = await appointmentService.getAvailableSlots(
         doctor.id,
         date,
@@ -142,27 +187,25 @@ const BookAppointmentScreen = () => {
           response.bookedSlots,
         );
 
+        // Extract previous booked slots for comparison
+        const previousBookedSlots = [...bookedSlots];
+
         // Convert UTC booked slots to local time formats that match your UI
         const localBookedTimes = [];
 
         response.bookedSlots.forEach(utcTime => {
-          // Parse the UTC time (format: "5:30")
+          // Your existing conversion code...
           const [utcHours, utcMinutes] = utcTime
             .split(':')
             .map(part => parseInt(part, 10));
 
-          // Create a new date object with the selected date
           const localDate = new Date(date);
-
-          // Set the UTC hours and minutes
           localDate.setUTCHours(utcHours, utcMinutes, 0, 0);
 
-          // Format to match your UI time format (e.g., "11:00 AM")
           let localHour = localDate.getHours();
           const localMinute = localDate.getMinutes();
           const period = localHour >= 12 ? 'PM' : 'AM';
 
-          // Convert to 12-hour format
           localHour = localHour % 12;
           if (localHour === 0) localHour = 12;
 
@@ -170,20 +213,47 @@ const BookAppointmentScreen = () => {
             localMinute === 0 ? '00' : localMinute
           } ${period}`;
 
-          console.log(
-            `Converting UTC ${utcTime} to local time: ${formattedLocalTime}`,
-          );
           localBookedTimes.push(formattedLocalTime);
         });
 
-        console.log('Local booked times to block in UI:', localBookedTimes);
+        // Check if there are new bookings
+        const newBookings = localBookedTimes.filter(
+          time => !previousBookedSlots.includes(time),
+        );
+
+        // If there are new bookings and this isn't the initial load, show an alert
+        if (
+          newBookings.length > 0 &&
+          previousBookedSlots.length > 0 &&
+          !silent
+        ) {
+          Alert.alert(
+            'Booking Update',
+            `Some time slots have just been booked: ${newBookings.join(', ')}`,
+            [{text: 'OK'}],
+          );
+        }
+
+        // If the selected time slot is now booked, clear the selection
+        if (selectedTime && localBookedTimes.includes(selectedTime)) {
+          setSelectedTime(null);
+          if (!silent) {
+            Alert.alert(
+              'Time Slot No Longer Available',
+              'The time slot you selected has been booked by someone else. Please select another time.',
+              [{text: 'OK'}],
+            );
+          }
+        }
+
         setBookedSlots(localBookedTimes);
       }
     } catch (error) {
       console.error('Error fetching booked slots:', error);
-      // Don't show an alert here, just log the error to avoid interrupting UX
     } finally {
-      setLoadingSlots(false);
+      if (!silent) {
+        setLoadingSlots(false);
+      }
     }
   };
 
@@ -274,10 +344,17 @@ const BookAppointmentScreen = () => {
     };
   };
 
-  // Add this function to get the latest slot availability
+  // Update the refreshSlotAvailability function
   const refreshSlotAvailability = () => {
     if (selectedDate) {
       fetchBookedSlots(selectedDate);
+      // Also reset the interval timer when manually refreshed
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = setInterval(() => {
+          fetchBookedSlots(selectedDate, true);
+        }, 15000);
+      }
     }
   };
 
