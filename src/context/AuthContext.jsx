@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {authService, doctorService} from '../services/api';
+import { notificationService } from '../services/notifications';
 
 const AuthContext = createContext();
 
@@ -47,6 +48,9 @@ export const AuthProvider = ({children}) => {
               'User session restored successfully:',
               parsedUserData.id,
             );
+
+            // Register device for notifications after session restoration
+            await notificationService.onUserAuthenticated();
 
             // Force isAuthenticated to update immediately
             return true;
@@ -214,19 +218,25 @@ export const AuthProvider = ({children}) => {
           setUser(userData);
           setUserType(userData.user_type);
 
+          // Register device for notifications after authentication
+          await notificationService.onUserAuthenticated();
+
           if (needsOnboarding) {
             AsyncStorage.setItem('user', JSON.stringify(userData));
             AsyncStorage.setItem('userType', userData.user_type);
             setLoading(false);
             return {success: true, needsOnboarding: true};
           }
+        } else {
+          // For patients or doctors who don't need onboarding
+          setUser(userData);
+          setUserType(userData.user_type);
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+          await AsyncStorage.setItem('userType', userData.user_type);
+          
+          // Register device for notifications after authentication
+          await notificationService.onUserAuthenticated();
         }
-
-        // For patients or doctors who don't need onboarding
-        setUser(userData);
-        setUserType(userData.user_type);
-        AsyncStorage.setItem('user', JSON.stringify(userData));
-        AsyncStorage.setItem('userType', userData.user_type);
       }
 
       setLoading(false);
@@ -258,6 +268,9 @@ export const AuthProvider = ({children}) => {
   const logout = async () => {
     try {
       setLoading(true);
+
+      // Notify notification service about logout
+      await notificationService.onUserLoggedOut();
 
       // Call logout API
       await authService.logout();

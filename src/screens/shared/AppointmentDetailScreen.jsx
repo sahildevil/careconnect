@@ -37,6 +37,20 @@ const AppointmentDetailScreen = () => {
       setLoading(false);
       Alert.alert('Error', 'No appointment information provided');
     }
+
+    // If coming from reminder, show directions option
+    if (route.params.fromReminder && route.params.appointment) {
+      setTimeout(() => {
+        Alert.alert(
+          'Appointment Reminder',
+          'Your appointment is in 1 hour. Would you like directions to the clinic?',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Get Directions', onPress: handleGetDirections }
+          ]
+        );
+      }, 500);
+    }
   }, [route.params]);
 
   const fetchAppointmentDetails = async appointmentId => {

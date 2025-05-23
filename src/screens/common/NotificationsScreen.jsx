@@ -114,11 +114,13 @@ const NotificationsScreen = () => {
     // Navigate based on notification type
     if (
       notification.notification_type === 'appointment_confirmed' ||
-      notification.notification_type === 'appointment_rejected'
+      notification.notification_type === 'appointment_rejected' ||
+      notification.notification_type === 'appointment_reminder'
     ) {
       if (notification.related_id) {
         navigation.navigate('AppointmentDetail', {
           appointmentId: notification.related_id,
+          fromReminder: notification.notification_type === 'appointment_reminder'
         });
       }
     }
@@ -141,6 +143,8 @@ const NotificationsScreen = () => {
         return 'checkmark-circle';
       case 'appointment_rejected':
         return 'close-circle';
+      case 'appointment_reminder':
+        return 'alarm';
       case 'message':
         return 'chatbubble-ellipses';
       case 'payment':
@@ -156,6 +160,8 @@ const NotificationsScreen = () => {
         return '#4CAF50';
       case 'appointment_rejected':
         return '#F44336';
+      case 'appointment_reminder':
+        return '#FF9800';
       case 'message':
         return '#2196F3';
       case 'payment':
