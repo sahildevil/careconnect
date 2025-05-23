@@ -15,6 +15,7 @@ import {useNavigation} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import {useNetInfo} from '@react-native-community/netinfo';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const PatientAppointmentsScreen = () => {
   const {user} = useAuth();
@@ -24,6 +25,7 @@ const PatientAppointmentsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
   const netInfo = useNetInfo();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Check network connectivity
@@ -249,7 +251,7 @@ const PatientAppointmentsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <Text style={styles.headerTitle}>My Appointments</Text>
       </View>
 

@@ -29,7 +29,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 const specialties = [
   {id: 1, name: 'Cardiology', icon: 'heart'},
   {id: 2, name: 'Dermatology', icon: 'body'},
-  {id: 3, name: 'Neurology', icon: 'brain'},
+  {id: 3, name: 'Neurology', icon: 'git-branch-outline'},
   {id: 4, name: 'Orthopedics', icon: 'fitness'},
   {id: 5, name: 'Pediatrics', icon: 'people'},
   {id: 6, name: 'Psychiatry', icon: 'chatbubbles'},
@@ -116,7 +116,6 @@ const PatientHomeScreen = () => {
           console.log('Location permission denied');
         }
       } else {
-        // For iOS, we can directly call Geolocation which will prompt for permission if needed
         getAndSaveLocation();
       }
     } catch (err) {
@@ -380,7 +379,8 @@ const PatientHomeScreen = () => {
               style={styles.searchIcon}
             />
             <TextInput
-              placeholder="Search doctor by name"
+              placeholder="Search doctor by name!"
+              placeholderTextColor="#888"
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -435,10 +435,9 @@ const PatientHomeScreen = () => {
           )}
 
           {/* Doctor Specialty */}
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, {marginTop: 10}]}>
             <Text style={styles.sectionTitle}>Doctor Specialty</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Specialties')}>
+            <TouchableOpacity onPress={() => navigation.navigate('DoctorList')}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -576,7 +575,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: 25,
+    marginTop: 20,
     marginBottom: 10,
   },
   sectionTitle: {

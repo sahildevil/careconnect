@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  RefreshControl,
+  Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -18,6 +20,8 @@ import {notificationService} from '../../services/notifications';
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState('all'); // all, unread, read
   const navigation = useNavigation();
   const {user, userType} = useAuth();
 
@@ -32,12 +36,9 @@ const NotificationsScreen = () => {
     return unsubscribe;
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRefreshing = false) => {
     try {
-      setLoading(true);
-
-      // Add debug logging
-      console.log('About to call notificationService.getNotifications()');
+      if (!isRefreshing) setLoading(true);
 
       // Check if notificationService exists
       if (
@@ -50,8 +51,6 @@ const NotificationsScreen = () => {
       }
 
       const response = await notificationService.getNotifications();
-
-      console.log('Notification response received:', response);
 
       if (response && response.success) {
         setNotifications(response.notifications || []);
@@ -67,7 +66,13 @@ const NotificationsScreen = () => {
       setNotifications([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications(true);
   };
 
   const markAsRead = async notificationId => {
@@ -75,7 +80,6 @@ const NotificationsScreen = () => {
       const response = await notificationService.markAsRead(notificationId);
 
       if (response.success) {
-        // Update local state to mark this notification as read
         setNotifications(
           notifications.map(notification =>
             notification.id === notificationId
@@ -94,7 +98,6 @@ const NotificationsScreen = () => {
       const response = await notificationService.markAllAsRead();
 
       if (response.success) {
-        // Update all notifications to read in local state
         setNotifications(
           notifications.map(notification => ({...notification, is_read: true})),
         );
@@ -119,7 +122,6 @@ const NotificationsScreen = () => {
         });
       }
     }
-    // Add more navigation logic for different notification types
   };
 
   const formatNotificationDate = dateString => {
@@ -136,77 +138,216 @@ const NotificationsScreen = () => {
   const getNotificationIcon = type => {
     switch (type) {
       case 'appointment_confirmed':
+        return 'checkmark-circle';
       case 'appointment_rejected':
-        return 'calendar';
+        return 'close-circle';
       case 'message':
-        return 'chatbubble';
+        return 'chatbubble-ellipses';
       case 'payment':
-        return 'cash';
+        return 'card';
       default:
         return 'notifications';
     }
   };
 
-  const renderNotificationItem = ({item}) => {
-    return (
-      <TouchableOpacity
+  const getNotificationColor = type => {
+    switch (type) {
+      case 'appointment_confirmed':
+        return '#4CAF50';
+      case 'appointment_rejected':
+        return '#F44336';
+      case 'message':
+        return '#2196F3';
+      case 'payment':
+        return '#FF9800';
+      default:
+        return '#0CB69B';
+    }
+  };
+
+  const getFilteredNotifications = () => {
+    switch (filter) {
+      case 'unread':
+        return notifications.filter(n => !n.is_read);
+      case 'read':
+        return notifications.filter(n => n.is_read);
+      default:
+        return notifications;
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const renderFilterButton = (filterType, label) => (
+    <TouchableOpacity
+      style={[
+        styles.filterButton,
+        filter === filterType && styles.activeFilterButton,
+      ]}
+      onPress={() => setFilter(filterType)}>
+      <Text
         style={[
-          styles.notificationItem,
-          item.is_read ? styles.readNotification : styles.unreadNotification,
-        ]}
-        onPress={() => handleNotificationPress(item)}>
-        <View style={styles.notificationIcon}>
-          <Icon
-            name={getNotificationIcon(item.notification_type)}
-            size={24}
-            color="#0CB69B"
-          />
-        </View>
-        <View style={styles.notificationContent}>
-          <Text style={styles.notificationTitle}>{item.title}</Text>
-          <Text style={styles.notificationMessage}>{item.message}</Text>
-          <Text style={styles.notificationTime}>
-            {formatNotificationDate(item.created_at)}
+          styles.filterButtonText,
+          filter === filterType && styles.activeFilterButtonText,
+        ]}>
+        {label}
+      </Text>
+      {filterType === 'unread' && unreadCount > 0 && (
+        <View style={styles.filterBadge}>
+          <Text style={styles.filterBadgeText}>
+            {unreadCount > 99 ? '99+' : unreadCount}
           </Text>
         </View>
-      </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
+
+  const renderNotificationItem = ({item, index}) => {
+    const iconColor = getNotificationColor(item.notification_type);
+
+    return (
+      <Animated.View style={[styles.notificationWrapper]}>
+        <TouchableOpacity
+          style={[
+            styles.notificationItem,
+            item.is_read ? styles.readNotification : styles.unreadNotification,
+          ]}
+          onPress={() => handleNotificationPress(item)}
+          activeOpacity={0.7}>
+          {/* Unread indicator */}
+          {!item.is_read && <View style={styles.unreadIndicator} />}
+
+          <View
+            style={[
+              styles.notificationIconContainer,
+              {backgroundColor: iconColor + '15'},
+            ]}>
+            <Icon
+              name={getNotificationIcon(item.notification_type)}
+              size={24}
+              color={iconColor}
+            />
+          </View>
+
+          <View style={styles.notificationContent}>
+            <View style={styles.notificationHeader}>
+              <Text style={styles.notificationTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={styles.notificationTime}>
+                {formatNotificationDate(item.created_at)}
+              </Text>
+            </View>
+
+            <Text style={styles.notificationMessage} numberOfLines={2}>
+              {item.message}
+            </Text>
+
+            {/* Notification type badge */}
+            <View
+              style={[styles.typeBadge, {backgroundColor: iconColor + '20'}]}>
+              <Text style={[styles.typeBadgeText, {color: iconColor}]}>
+                {item.notification_type.replace('_', ' ').toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => markAsRead(item.id)}>
+            <Icon name="ellipsis-horizontal" size={20} color="#999" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
+
+  const filteredNotifications = getFilteredNotifications();
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#0CB69B" barStyle="light-content" />
+
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <TouchableOpacity style={styles.markReadButton} onPress={markAllAsRead}>
-          <Text style={styles.markReadText}>Mark all as read</Text>
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <Text style={styles.headerSubtitle}>
+              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+            </Text>
+          </View>
+        </View>
+
+        {unreadCount > 0 && (
+          <TouchableOpacity
+            style={styles.markAllButton}
+            onPress={markAllAsRead}>
+            <Icon name="checkmark-done" size={20} color="#0CB69B" />
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
+      {/* Filter Buttons */}
+      <View style={styles.filterContainer}>
+        {renderFilterButton('all', 'All')}
+        {renderFilterButton('unread', 'Unread')}
+        {renderFilterButton('read', 'Read')}
+      </View>
+
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0CB69B" />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
         </View>
-      ) : notifications.length > 0 ? (
+      ) : filteredNotifications.length > 0 ? (
         <FlatList
-          data={notifications}
+          data={filteredNotifications}
           renderItem={renderNotificationItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.notificationList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#0CB69B']}
+              tintColor="#0CB69B"
+            />
+          }
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Icon name="notifications-off" size={60} color="#ccc" />
-          <Text style={styles.emptyText}>No notifications yet</Text>
-          <Text style={styles.emptySubText}>
-            You'll see notifications about your appointments, messages, and more
-            here.
+          <View style={styles.emptyIconContainer}>
+            <Icon name="notifications-off" size={80} color="#E0E0E0" />
+          </View>
+          <Text style={styles.emptyText}>
+            {filter === 'unread'
+              ? 'No unread notifications'
+              : filter === 'read'
+              ? 'No read notifications'
+              : 'No notifications yet'}
           </Text>
+          <Text style={styles.emptySubText}>
+            {filter === 'all'
+              ? "You'll see notifications about your appointments, messages, and more here."
+              : 'Try switching to a different filter.'}
+          </Text>
+
+          {filter === 'all' && (
+            <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+              <Icon name="refresh" size={20} color="#0CB69B" />
+              <Text style={styles.refreshButtonText}>Refresh</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -216,57 +357,148 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 15,
+    paddingVertical: 20,
     paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   backButton: {
-    padding: 5,
+    padding: 8,
+    marginRight: 15,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
-  markAllRead: {
+  headerSubtitle: {
     fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  markAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  markAllText: {
+    fontSize: 12,
     color: '#0CB69B',
-    fontWeight: '500',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+  },
+  activeFilterButton: {
+    backgroundColor: '#0CB69B',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  activeFilterButtonText: {
+    color: '#FFFFFF',
+  },
+  filterBadge: {
+    backgroundColor: '#FF4757',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  filterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
   notificationList: {
-    padding: 10,
+    padding: 15,
+  },
+  notificationWrapper: {
+    marginBottom: 10,
   },
   notificationItem: {
     flexDirection: 'row',
-    padding: 15,
+    padding: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
+    position: 'relative',
   },
   unreadNotification: {
-    backgroundColor: '#F8FFFE',
+    borderLeftWidth: 4,
+    borderLeftColor: '#0CB69B',
   },
-  notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  readNotification: {
+    opacity: 0.8,
+  },
+  unreadIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#0CB69B',
+  },
+  notificationIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -277,49 +509,88 @@ const styles = StyleSheet.create({
   notificationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
+    alignItems: 'flex-start',
+    marginBottom: 6,
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
     flex: 1,
+    marginRight: 10,
   },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#0CB69B',
-    marginLeft: 8,
+  notificationTime: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '500',
   },
   notificationMessage: {
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
-    marginBottom: 5,
+    marginBottom: 8,
   },
-  notificationTime: {
-    fontSize: 12,
-    color: '#999',
+  typeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  moreButton: {
+    padding: 8,
+    alignSelf: 'flex-start',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 60,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 40,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#333',
-    marginTop: 20,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
+    marginBottom: 8,
     textAlign: 'center',
-    marginTop: 10,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E8',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    color: '#0CB69B',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

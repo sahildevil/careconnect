@@ -15,13 +15,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const AppointmentDetailScreen = () => {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const {userType} = useAuth();
   const [directionsLoading, setDirectionsLoading] = useState(false);
-
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
 
@@ -291,7 +292,7 @@ const AppointmentDetailScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}>
