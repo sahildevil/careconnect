@@ -72,7 +72,8 @@ export const AuthProvider = ({children}) => {
     }
   };
 
-  // Replace the validateToken function
+  // Update the validateToken function to ensure user data consistency
+
   const validateToken = async token => {
     try {
       console.log('Validating token...');
@@ -104,16 +105,19 @@ export const AuthProvider = ({children}) => {
         const data = await response.json();
         console.log('Token valid, profile retrieved successfully');
 
-        // Ensure user data is up to date with latest from server
+        // IMPORTANT: Ensure user data is up to date with latest from server
         if (data.success && data.user) {
+          console.log('Updating user data from server:', data.user.id);
           // Update local storage with latest user data
           await AsyncStorage.setItem('user', JSON.stringify(data.user));
           setUser(data.user);
+          return true;
         } else {
           // Use existing user data if the API doesn't return updated user info
+          console.log('Using existing user data:', userData.id);
           setUser(userData);
+          return true;
         }
-        return true;
       }
 
       // Fallback validation - try a simpler endpoint
@@ -128,7 +132,26 @@ export const AuthProvider = ({children}) => {
 
         if (fallbackResponse.status === 200) {
           console.log('Token validated using fallback endpoint');
-          setUser(userData);
+
+          // CRITICAL: Get fresh user data after fallback validation
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.success && fallbackData.user) {
+            console.log(
+              'Updating user data from fallback:',
+              fallbackData.user.id,
+            );
+            await AsyncStorage.setItem(
+              'user',
+              JSON.stringify(fallbackData.user),
+            );
+            setUser(fallbackData.user);
+          } else {
+            console.log(
+              'Using stored user data after fallback validation:',
+              userData.id,
+            );
+            setUser(userData);
+          }
           return true;
         }
       } catch (fallbackError) {

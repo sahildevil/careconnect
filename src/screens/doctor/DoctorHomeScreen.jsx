@@ -9,6 +9,7 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -32,18 +33,36 @@ const DoctorHomeScreen = () => {
   const {user} = useAuth();
 
   useEffect(() => {
+    // Initial fetch
     fetchAppointments();
 
     // Add a refresh listener when the screen is focused
     const unsubscribe = navigation.addListener('focus', () => {
+      console.log('DoctorHomeScreen focused, refreshing appointments...');
       fetchAppointments();
     });
 
-    return unsubscribe;
-  }, []);
+    // Handle app state changes
+    const handleAppStateChange = nextAppState => {
+      if (nextAppState === 'active') {
+        console.log('App became active, refreshing appointments...');
+        fetchAppointments();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+
+    return () => {
+      unsubscribe();
+      subscription?.remove();
+    };
+  }, [user]); // Add user as dependency
 
   // Helper function to get date in YYYY-MM-DD format
-  const getDateString = (date) => {
+  const getDateString = date => {
     const d = new Date(date);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -52,56 +71,95 @@ const DoctorHomeScreen = () => {
   };
 
   // Helper function to check if a date is today
-  const isToday = (dateString) => {
+  const isToday = dateString => {
     const today = getDateString(new Date());
     const appointmentDate = getDateString(dateString);
     return today === appointmentDate;
   };
 
   // Helper function to check if a date is in the future (not today)
-  const isFuture = (dateString) => {
+  const isFuture = dateString => {
     const today = new Date();
     const appointmentDate = new Date(dateString);
-    
+
     // Set time to start of day for fair comparison
     today.setHours(0, 0, 0, 0);
     appointmentDate.setHours(0, 0, 0, 0);
-    
+
     return appointmentDate > today;
   };
 
-  // Improved fetchAppointments function with better date handling
-  const fetchAppointments = async () => {
+  // Update the fetchAppointments function with retry logic
+
+  const fetchAppointments = async (retryCount = 0) => {
     try {
       setLoading(true);
-      console.log('Attempting to fetch doctor appointments...');
-      const response = await appointmentService.getDoctorAppointments();
+      console.log(
+        `Attempting to fetch doctor appointments... (attempt ${
+          retryCount + 1
+        })`,
+      );
+
+      // Ensure user data is available
+      if (!user || !user.id) {
+        console.error(
+          'No user data available, waiting for auth to complete...',
+        );
+
+        // If no user and this is first attempt, wait a bit and retry
+        if (retryCount === 0) {
+          setTimeout(() => fetchAppointments(1), 1000);
+          return;
+        } else {
+          throw new Error('User not authenticated');
+        }
+      }
+
+      console.log(
+        'Fetching appointments for user:',
+        user.id,
+        'type:',
+        user.user_type,
+      );
+
+      const response = await appointmentService.getDoctorAppointments(user.id);
       console.log('Appointments response:', response);
 
       if (response.success && Array.isArray(response.appointments)) {
         const appointments = response.appointments;
         console.log(`Received ${appointments.length} appointments from server`);
 
+        // If we got 0 appointments and this is the first attempt, try once more
+        if (appointments.length === 0 && retryCount === 0) {
+          console.log('Got 0 appointments, retrying once more...');
+          setTimeout(() => fetchAppointments(1), 2000);
+          return;
+        }
+
         // Get today's date string for comparison
         const todayString = getDateString(new Date());
-        console.log('Today\'s date string:', todayString);
+        console.log("Today's date string:", todayString);
 
         // Filter appointments for today with improved date comparison
         const todayAppts = appointments.filter(app => {
           const appointmentDateString = getDateString(app.appointment_date);
           const isTodayAppointment = appointmentDateString === todayString;
-          const isActiveStatus = app.status !== 'canceled' && app.status !== 'completed';
-          
-          console.log(`Appointment ${app.id}: Date=${appointmentDateString}, IsToday=${isTodayAppointment}, Status=${app.status}, IsActive=${isActiveStatus}`);
-          
+          const isActiveStatus =
+            app.status !== 'canceled' && app.status !== 'completed';
+
+          console.log(
+            `Appointment ${app.id}: Date=${appointmentDateString}, IsToday=${isTodayAppointment}, Status=${app.status}, IsActive=${isActiveStatus}`,
+          );
+
           return isTodayAppointment && isActiveStatus;
         });
 
         // Filter upcoming appointments (future dates, not today)
         const upcomingAppts = appointments.filter(app => {
           const isFutureAppointment = isFuture(app.appointment_date);
-          const isActiveStatus = app.status !== 'canceled' && app.status !== 'completed';
-          
+          const isActiveStatus =
+            app.status !== 'canceled' && app.status !== 'completed';
+
           return isFutureAppointment && isActiveStatus;
         });
 
@@ -119,20 +177,22 @@ const DoctorHomeScreen = () => {
           app => app.status === 'canceled',
         ).length;
 
-        // ADD THIS LINE - calculate pendingCount from pendingAppts
         const pendingCount = pendingAppts.length;
 
         console.log(
           `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming, ${pendingCount} pending`,
         );
-        
+
         // Log today's appointments for debugging
-        console.log('Today\'s appointments:', todayAppts.map(app => ({
-          id: app.id,
-          date: app.appointment_date,
-          patient: app.patients?.name || 'Unknown',
-          status: app.status
-        })));
+        console.log(
+          "Today's appointments:",
+          todayAppts.map(app => ({
+            id: app.id,
+            date: app.appointment_date,
+            patient: app.patients?.name || 'Unknown',
+            status: app.status,
+          })),
+        );
 
         setTodayAppointments(todayAppts);
         setUpcomingAppointments(upcomingAppts);
@@ -141,7 +201,7 @@ const DoctorHomeScreen = () => {
           upcoming: upcomingAppts.length,
           completed: completedCount,
           cancelled: cancelledCount,
-          pending: pendingCount, // Now this is defined
+          pending: pendingCount,
         });
       } else {
         console.error('Invalid response format or no appointments found');
@@ -153,10 +213,19 @@ const DoctorHomeScreen = () => {
           upcoming: 0,
           completed: 0,
           cancelled: 0,
+          pending: 0,
         });
       }
     } catch (error) {
       console.error('Error fetching appointments:', error);
+
+      // If this is first attempt and we got an error, try once more
+      if (retryCount === 0) {
+        console.log('First attempt failed, retrying...');
+        setTimeout(() => fetchAppointments(1), 2000);
+        return;
+      }
+
       // Set empty arrays on error
       setTodayAppointments([]);
       setUpcomingAppointments([]);
@@ -165,6 +234,7 @@ const DoctorHomeScreen = () => {
         upcoming: 0,
         completed: 0,
         cancelled: 0,
+        pending: 0,
       });
     } finally {
       setLoading(false);
@@ -176,9 +246,9 @@ const DoctorHomeScreen = () => {
     try {
       const appointmentDate = new Date(item.appointment_date);
       const appointmentTime = appointmentDate.toLocaleTimeString([], {
-        hour: '2-digit', 
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
       });
 
       // Log the appointment to debug
@@ -186,11 +256,12 @@ const DoctorHomeScreen = () => {
         id: item.id,
         date: item.appointment_date,
         patientInfo: item.patients || 'No patient info',
-        status: item.status
+        status: item.status,
       });
 
       // Get patient name with fallback
-      const patientName = item.patients?.name || item.patient?.name || 'Patient';
+      const patientName =
+        item.patients?.name || item.patient?.name || 'Patient';
       const patientInitial = patientName.charAt(0).toUpperCase();
 
       return (
