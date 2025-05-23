@@ -106,17 +106,19 @@ const DoctorNavigator = () => {
 };
 
 const AppNavigator = () => {
-  const {isAuthenticated, loading, userType, user} = useAuth();
+  const auth = useAuth();
+  const {loading, userType, user} = auth;
+  const isAuthenticated = !!user; // Directly calculate isAuthenticated from user
 
   // Add console log for debugging
   useEffect(() => {
     console.log('AppNavigator - Auth state:', {
-      isAuthenticated,
+      isAuthenticated: !!user, // Calculate directly from user state
       userType,
       userId: user?.id,
       loading,
     });
-  }, [isAuthenticated, userType, user, loading]);
+  }, [user, userType, loading]);
 
   // Add a check for doctor needing onboarding
   const needsDoctorOnboarding = React.useMemo(() => {
@@ -125,6 +127,14 @@ const AppNavigator = () => {
     }
     return false;
   }, [isAuthenticated, userType, user]);
+
+  // Inside your AppNavigator component
+  useEffect(() => {
+    // Add this for better debugging
+    if (!isAuthenticated && !loading) {
+      console.log('User is not authenticated, navigating to auth screens');
+    }
+  }, [isAuthenticated, loading]);
 
   if (loading) {
     return (
