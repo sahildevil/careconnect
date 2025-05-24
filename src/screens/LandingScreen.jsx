@@ -26,7 +26,7 @@ const LandingScreen = () => {
       <View style={styles.contentContainer}>
         <View style={styles.imageContainer}>
           <Image
-            source={require('../assets/images/doctor_potrait2.png')} // Replace with your image path
+            source={require('../assets/images/doc3.png')} // Replace with your image path
             style={styles.doctorImage}
             resizeMode="cover"
           />
@@ -35,7 +35,7 @@ const LandingScreen = () => {
         <View style={styles.textContainer}>
           <Text style={styles.title}>CareConnect</Text>
           <Text style={styles.subtitle}>
-            Book an appointment with doctor. Chat with doctor via appointment letter and get consultation
+            Book Care. Anytime. Anywhere.
           </Text>
         </View>
         

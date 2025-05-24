@@ -609,10 +609,7 @@ const DoctorOnboardingScreen = () => {
                   <CustomPicker
                     selectedValue={startTime}
                     onValueChange={setStartTime}
-                    items={timeSlots.map(time => ({
-                      label: time,
-                      value: time,
-                    }))}
+                    items={timeSlots}  // Pass the array directly, not mapped to objects
                     style={styles.timePicker}
                   />
                 </View>
@@ -622,10 +619,7 @@ const DoctorOnboardingScreen = () => {
                   <CustomPicker
                     selectedValue={endTime}
                     onValueChange={setEndTime}
-                    items={timeSlots.map(time => ({
-                      label: time,
-                      value: time,
-                    }))}
+                    items={timeSlots}  // Pass the array directly, not mapped to objects
                     style={styles.timePicker}
                   />
                 </View>

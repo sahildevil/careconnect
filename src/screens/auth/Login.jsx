@@ -11,10 +11,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
-
+const { width, height } = Dimensions.get('window');
 const Login = ({navigation, route}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,9 +81,14 @@ const Login = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.container}>
+              <View style={styles.topRightShape} />
+        <View style={styles.bottomRightShape} />
+        <View style={styles.topRightShapee} />
+        <View style={styles.bottomRightShapee} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
+
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>CareConnect</Text>
@@ -266,6 +272,46 @@ const styles = StyleSheet.create({
     color: '#0CB69B',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+    topRightShape: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#5cedd7',//#0CB69B
+    zIndex: 1,
+  },
+  bottomRightShape: {
+    position: 'absolute',
+    bottom: -100,
+    left: -100,
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#5cedd7',//#0CB69B
+    zIndex: 1,
+  },
+  topRightShapee: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: width * 0.55,
+    height: width * 0.55,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#f8f8f8',//#0CB69B
+    zIndex: 0,
+  },
+  bottomRightShapee: {
+    position: 'absolute',
+    bottom: -100,
+    left: -100,
+    width: width * 0.55,
+    height: width * 0.55,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#f8f8f8',//#0CB69B
+    zIndex: 0,
   },
 });
 

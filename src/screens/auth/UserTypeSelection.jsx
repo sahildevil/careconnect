@@ -16,8 +16,7 @@ const UserTypeSelection = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-      
-      {/* Green curved shape at the top-right corner */}
+
       <View style={styles.topRightShape} />
       <View style={styles.bottomRightShape} />
       <View style={styles.headerContainer}>
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 1,
   },
   cardIconContainer: {
     width: 80,

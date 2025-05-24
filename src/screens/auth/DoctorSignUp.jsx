@@ -86,6 +86,7 @@ const DoctorSignUp = () => {
       if (response.success) {
         Alert.alert(
           'Registration Successful',
+            'Your doctor account has been created successfully!', 
           [
             {
               text: 'OK',
