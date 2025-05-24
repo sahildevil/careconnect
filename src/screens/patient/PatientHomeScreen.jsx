@@ -13,7 +13,8 @@ import {
   Platform,
   Alert,
   PermissionsAndroid,
-  RefreshControl, 
+  RefreshControl,
+  Image, // Add Image import
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -326,12 +327,21 @@ const PatientHomeScreen = () => {
         <View style={styles.divider} />
 
         <View style={styles.doctorInfo}>
-          <View style={styles.doctorAvatar}>
-            <Text style={styles.doctorInitial}>
-              {doctorData.name ? doctorData.name.charAt(0) : 'D'}
-            </Text>
+          {/* Enhanced doctor avatar with profile picture support */}
+          <View style={styles.appointmentDoctorAvatar}>
+            {doctorData.avatar_url ? (
+              <Image
+                source={{ uri: doctorData.avatar_url }}
+                style={styles.appointmentAvatarImage}
+                defaultSource={require('../../assets/images/Doctor_icon.png')}
+              />
+            ) : (
+              <Text style={styles.appointmentDoctorInitial}>
+                {doctorData.name ? doctorData.name.charAt(0).toUpperCase() : 'D'}
+              </Text>
+            )}
           </View>
-          <View>
+          <View style={styles.appointmentDoctorDetails}>
             <Text style={styles.doctorName}>
               Dr. {doctorData.name || 'Doctor'}
             </Text>
@@ -580,7 +590,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   headerBackground: {
-    backgroundColor: '#0CB69B', // #0CB69B
+    backgroundColor: '#0CB69B',
     paddingBottom: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
@@ -665,7 +675,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   appointmentCard: {
-    width: 250, // Make the card wider to fit more content
+    width: 250,
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 15,
@@ -696,6 +706,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
+  
+  // Enhanced styles for appointment doctor avatar
+  appointmentDoctorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E6F8F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#0CB69B',
+  },
+  appointmentAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e0e0e0',
+  },
+  appointmentDoctorInitial: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0CB69B',
+  },
+  appointmentDoctorDetails: {
+    flex: 1,
+  },
+  
   doctorName: {
     fontSize: 15,
     fontWeight: '500',
@@ -713,7 +751,7 @@ const styles = StyleSheet.create({
   specialtyItem: {
     alignItems: 'center',
     marginRight: 14,
-    width: 70, // Fixed width for consistency
+    width: 70,
   },
   specialtyIcon: {
     width: 55,
@@ -728,10 +766,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     color: '#333',
-    width: 80, // Increased width to fit longer words
-    whiteSpace: 'nowrap', // Prevent line break
-    overflow: 'hidden', // Hide overflow
-    textOverflow: 'ellipsis', // Show ellipsis if text overflows
+    width: 80,
   },
   doctorCard: {
     backgroundColor: '#fff',
