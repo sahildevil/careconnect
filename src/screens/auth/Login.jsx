@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {useAuth} from '../../context/AuthContext';
 
 const Login = ({navigation, route}) => {
@@ -19,6 +20,7 @@ const Login = ({navigation, route}) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState('patient');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {login, error} = useAuth();
 
@@ -101,14 +103,26 @@ const Login = ({navigation, route}) => {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={'#999'}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor={'#999'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}>
+                <Icon
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               style={styles.forgotPassword}
@@ -189,6 +203,24 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
+    color: '#333',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  eyeButton: {
+    padding: 15,
+    paddingLeft: 10,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

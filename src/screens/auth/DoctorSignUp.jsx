@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  TextInput,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {authService} from '../../services/api';
@@ -19,6 +20,7 @@ import {
   HeaderComponent,
   BackButton,
 } from '../../components';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const specialties = [
   'Cardiology',
@@ -43,6 +45,8 @@ const DoctorSignUp = () => {
   const [experience, setExperience] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigation = useNavigation();
 
   const handleSignUp = async () => {
@@ -174,21 +178,47 @@ const DoctorSignUp = () => {
               keyboardType="number-pad"
             />
 
-            <CustomTextField
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              required
-            />
+            {/* Password Input with Eye Button */}
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}>
+                <Icon
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
 
-            <CustomTextField
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              required
-            />
+            {/* Confirm Password Input with Eye Button */}
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm Password"
+                placeholderTextColor="#999"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Icon
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.noteText}>* Required fields</Text>
 
@@ -271,6 +301,23 @@ const styles = StyleSheet.create({
     color: '#0CB69B',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+    color: '#333',
+  },
+  eyeButton: {
+    padding: 15,
+    paddingLeft: 10,
   },
 });
 
