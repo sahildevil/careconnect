@@ -51,6 +51,7 @@ const DoctorListScreen = () => {
     // Check if search query was passed as a param
     if (route.params?.searchQuery) {
       setSearchQuery(route.params.searchQuery);
+      filterDoctors(); // Ensure doctors are filtered based on the query
     }
   }, [route.params]);
 

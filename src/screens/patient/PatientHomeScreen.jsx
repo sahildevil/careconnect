@@ -537,7 +537,7 @@ const PatientHomeScreen = () => {
             <Icon
               name="search"
               size={20}
-              color="#888"
+              color="#fff"
               style={styles.searchIcon}
             />
             <TextInput
@@ -546,13 +546,14 @@ const PatientHomeScreen = () => {
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              onSubmitEditing={() =>
-                navigation.navigate('DoctorList', {searchQuery})
-              }
+              onSubmitEditing={() => {
+                if (searchQuery.trim()) {
+                  navigation.navigate('DoctorList', { searchQuery });
+                } else {
+                  Alert.alert('Search', 'Please enter a search query.');
+                }
+              }}
             />
-            <TouchableOpacity style={styles.micButton}>
-              <Icon name="mic" size={20} color="#FFF" />
-            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </View>
@@ -634,7 +635,7 @@ const PatientHomeScreen = () => {
           />
 
           {/* Popular Doctors */}
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, {marginTop: 0}]}>
             <Text style={styles.sectionTitle}>Popular Doctors</Text>
             <TouchableOpacity onPress={() => navigation.navigate('DoctorList')}>
               <Text style={styles.seeAll}>See all</Text>
@@ -682,11 +683,10 @@ const PatientHomeScreen = () => {
   );
 };
 
-// ... existing styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f6faf9',
   },
   headerBackground: {
     backgroundColor: '#0CB69B',
@@ -726,7 +726,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   searchIcon: {
+    backgroundColor: '#0CB69B',
+    borderRadius: 50,
+    width: 35,
+    height: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 10,
+    padding: 7.5,
   },
   searchInput: {
     flex: 1,
