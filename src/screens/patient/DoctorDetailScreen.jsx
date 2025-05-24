@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
 import {BackButton, CustomButton} from '../../components';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const DoctorDetailScreen = () => {
   const [doctor, setDoctor] = useState(null);
@@ -22,7 +23,7 @@ const DoctorDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const {doctor: doctorFromParams, doctorId} = route.params || {};
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     if (doctorFromParams) {
       // If we received the full doctor object, use it directly
@@ -88,7 +89,7 @@ const DoctorDetailScreen = () => {
   if (!doctor) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
@@ -113,7 +114,7 @@ const DoctorDetailScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
         <BackButton color="#fff" />
         <Text style={styles.headerTitle}>Doctor Details</Text>
         <TouchableOpacity style={styles.favoriteButton}>

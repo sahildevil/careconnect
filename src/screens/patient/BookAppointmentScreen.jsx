@@ -17,6 +17,7 @@ import {appointmentService} from '../../services/api';
 import {calendarService} from '../../services/calendarService';
 import {useAuth} from '../../context/AuthContext';
 import {useAppointments} from '../../context/AppointmentContext';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   BackButton,
   CustomButton,
@@ -89,7 +90,7 @@ const BookAppointmentScreen = () => {
   const [timeSlots, setTimeSlots] = useState([]);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const {user} = useAuth();
@@ -489,7 +490,7 @@ const BookAppointmentScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <BackButton color="#fff" />
         <Text style={styles.headerTitle}>Book Appointment</Text>
         <View style={{width: 40}} />
