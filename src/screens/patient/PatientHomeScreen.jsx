@@ -645,33 +645,51 @@ const PatientHomeScreen = () => {
           {popularDoctors.map((doctor, index) => (
             <TouchableOpacity
               key={doctor.id}
-              style={styles.doctorCard}
+              style={styles.updatedDoctorCard}
               onPress={() => navigation.navigate('DoctorDetail', {doctor})}>
-              <View style={styles.popularDoctorInfo}>
-                <View>
-                  <View style={styles.doctorStatus}>
-                    <View style={styles.statusDot}></View>
-                    <Text style={styles.doctorName}>Dr. {doctor.name}</Text>
-                  </View>
-                  <Text style={styles.doctorSpecialty}>{doctor.specialty}</Text>
+              
+              {/* Doctor image and basic info */}
+              <View style={styles.doctorCardHeader}>
+                <View style={styles.doctorImageContainer}>
+                  {doctor.avatar_url ? (
+                    <Image
+                      source={{ uri: doctor.avatar_url }}
+                      style={styles.doctorImage}
+                      defaultSource={require('../../assets/images/Doctor_icon.png')}
+                    />
+                  ) : (
+                    <View style={styles.doctorImagePlaceholder}>
+                      <Text style={styles.doctorImageInitial}>
+                        {doctor.name ? doctor.name.charAt(0).toUpperCase() : 'D'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.doctorOnlineIndicator} />
                 </View>
-                <View style={styles.ratingContainer}>
-                  <Icon name="star" size={14} color="#FFD700" />
-                  <Text style={styles.rating}>{doctor.rating || '4.5'}</Text>
+                
+                <View style={styles.doctorCardInfo}>
+                  <View style={styles.doctorNameContainer}>
+                    <Text style={styles.doctorCardName}>Dr. {doctor.name}</Text>
+                    <View style={styles.ratingContainer}>
+                      <Icon name="star" size={14} color="#FFD700" />
+                      <Text style={styles.rating}>{doctor.rating || '4.8'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.doctorCardSpecialty}>{doctor.specialty || 'Specialist'}</Text>
                 </View>
               </View>
-              <View style={styles.appointmentDetails}>
+              
+              {/* Appointment button and time */}
+              <View style={styles.doctorCardFooter}>
                 <TouchableOpacity
                   style={styles.appointmentButton}
-                  onPress={() =>
-                    navigation.navigate('BookAppointment', {doctor: doctor})
-                  }>
+                  onPress={() => navigation.navigate('BookAppointment', {doctor: doctor})}>
                   <Text style={styles.appointmentButtonText}>Appointment</Text>
                 </TouchableOpacity>
                 <View style={styles.timeContainer}>
                   <Icon name="time-outline" size={16} color="#888" />
                   <Text style={styles.timeText}>
-                    {doctor.available_hours || '09:00 AM - 05:00 PM'}
+                    {doctor.available_hours || '10:30 AM-2:00 PM'}
                   </Text>
                 </View>
               </View>
@@ -1062,6 +1080,86 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     fontWeight: '500',
+  },
+  // New styles for updated doctor card
+  updatedDoctorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    margin: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  doctorCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  doctorImageContainer: {
+    position: 'relative',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  doctorImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  doctorImagePlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#E6F8F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctorImageInitial: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0CB69B',
+  },
+  doctorOnlineIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  doctorCardInfo: {
+    flex: 1,
+  },
+  doctorNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  doctorCardName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  doctorCardSpecialty: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 2,
+  },
+  doctorCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
 

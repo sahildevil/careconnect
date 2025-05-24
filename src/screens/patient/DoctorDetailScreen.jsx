@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -124,9 +125,19 @@ const DoctorDetailScreen = () => {
         <View style={styles.doctorInfoCard}>
           <View style={styles.doctorBasicInfo}>
             <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{doctor.name.charAt(0)}</Text>
-              </View>
+              {doctor.avatar_url ? (
+                <Image
+                  source={{uri: doctor.avatar_url}}
+                  style={styles.avatar}
+                  defaultSource={require('../../assets/images/Doctor_icon.png')}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>
+                    {doctor.name ? doctor.name.charAt(0).toUpperCase() : 'D'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.onlineIndicator} />
             </View>
 
@@ -315,6 +326,12 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E6F8F6',
+  },
+  avatarPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
