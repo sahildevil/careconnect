@@ -691,7 +691,7 @@ const DoctorListScreen = () => {
                       <Text style={[
                         styles.sortButtonText,
                         tempSortOrder === 'ascending' && styles.activeSortButtonText
-                      ]}>Ascending</Text>
+                      ]}>Low to High</Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity 
@@ -704,7 +704,7 @@ const DoctorListScreen = () => {
                       <Text style={[
                         styles.sortButtonText,
                         tempSortOrder === 'descending' && styles.activeSortButtonText
-                      ]}>Descending</Text>
+                      ]}>High to Low</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -723,6 +723,15 @@ const DoctorListScreen = () => {
     );
   };
 
+  // Add this function to check for active filters
+  const hasActiveFilters = () => {
+    return maxFee < originalMaxFee || 
+           maxDistance < originalMaxDistance || 
+           minExperience > 0 ||
+           sortBy !== 'distance' ||
+           sortOrder !== 'ascending';
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.header, {paddingTop: insets.top}]}>
@@ -732,8 +741,10 @@ const DoctorListScreen = () => {
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find Doctors</Text>
-        <TouchableOpacity onPress={() => setShowFilterModal(true)} style={{padding: 5}}>
-          <Icon name="options-outline" size={22} color="#fff" />
+        <TouchableOpacity 
+          onPress={fetchDoctors} 
+          style={styles.refreshButton}>
+          <Icon name="refresh" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -745,11 +756,21 @@ const DoctorListScreen = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
+        {searchQuery.length > 0 ? (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchActionButton}>
             <Icon name="close-circle" size={20} color="#666" />
           </TouchableOpacity>
-        )}
+        ) : null}
+        
+        <TouchableOpacity 
+          onPress={() => setShowFilterModal(true)}
+          style={[styles.filterButton, hasActiveFilters() && styles.activeFilterButton]}>
+          <Icon 
+            name="options-outline" 
+            size={20} 
+            color={hasActiveFilters() ? "#fff" : "#0CB69B"} 
+          />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.specialtyContainer}>
@@ -959,7 +980,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 15,
     marginBottom: 10,
-    paddingHorizontal: 15,
+    paddingLeft: 15,
+    paddingRight: 5,
     borderRadius: 10,
     height: 50,
     shadowColor: '#000',
@@ -973,6 +995,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
     color: '#333',
+    paddingRight: 5,
+  },
+  searchActionButton: {
+    padding: 5,
+  },
+  filterButton: {
+    backgroundColor: '#E6F8F6',
+    padding: 8,
+    borderRadius: 8,
+    marginLeft: 8,
+    marginRight: 5,
+  },
+  activeFilterButton: {
+    backgroundColor: '#0CB69B',
+  },
+  refreshButton: {
+    padding: 5,
   },
   
   // Filter modal styles
