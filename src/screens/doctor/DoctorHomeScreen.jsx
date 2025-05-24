@@ -249,41 +249,101 @@ const DoctorHomeScreen = () => {
     }
   };
 
-  // Improved renderAppointmentItem function with better error handling
+  // Update the renderAppointmentItem function with date display and enhanced styling
   const renderAppointmentItem = ({item}) => {
     try {
       const appointmentDate = new Date(item.appointment_date);
+
+      // Format time
       const appointmentTime = appointmentDate.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
       });
 
-      // Log the appointment to debug
-      console.log('Rendering appointment:', {
-        id: item.id,
-        date: item.appointment_date,
-        patientInfo: item.patients || 'No patient info',
-        status: item.status,
+      // Format date
+      const formattedDate = appointmentDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
       });
 
       // Get patient name with fallback
-      const patientName =
-        item.patients?.name || item.patient?.name || 'Patient';
+      const patientName = item.patients?.name || item.patient?.name || 'Patient';
       const patientInitial = patientName.charAt(0).toUpperCase();
 
+      // Determine status color
+      const getStatusColor = status => {
+        switch (status?.toLowerCase()) {
+          case 'confirmed':
+          case 'scheduled':
+            return '#4CAF50';
+          case 'pending':
+            return '#FFC107';
+          case 'completed':
+            return '#2196F3';
+          case 'cancelled':
+          case 'canceled':
+            return '#F44336';
+          default:
+            return '#9E9E9E';
+        }
+      };
+
+      const statusColor = getStatusColor(item.status);
+
       return (
-        <View style={styles.appointmentCard}>
+        <TouchableOpacity
+          style={styles.appointmentCard}
+          onPress={() =>
+            navigation.navigate('AppointmentDetail', {appointment: item})
+          }>
+          <View style={styles.appointmentHeader}>
+            <View
+              style={[styles.statusBadge, {backgroundColor: `${statusColor}20`}]}>
+              <View style={[styles.statusDot, {backgroundColor: statusColor}]} />
+              <Text style={[styles.statusText, {color: statusColor}]}>
+                {(item.status || 'Scheduled')
+                  .charAt(0)
+                  .toUpperCase() +
+                  (item.status || 'Scheduled').slice(1)}
+              </Text>
+            </View>
+
+            <View style={styles.dateTimeContainer}>
+              <Icon name="calendar-outline" size={14} color="#666" />
+              <Text style={styles.dateText}>{formattedDate}</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
           <View style={styles.patientInfo}>
             <View style={styles.patientAvatar}>
-              <Text style={styles.avatarText}>{patientInitial}</Text>
+              {item.patients?.avatar_url ? (
+                <Image
+                  source={{uri: item.patients.avatar_url}}
+                  style={styles.patientImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>{patientInitial}</Text>
+              )}
             </View>
+
             <View style={styles.patientDetails}>
               <Text style={styles.patientName}>{patientName}</Text>
               <Text style={styles.appointmentType}>
                 {item.appointment_type || 'Consultation'}
               </Text>
+
+              <View style={styles.reasonContainer}>
+                <Text style={styles.reasonLabel}>Reason:</Text>
+                <Text style={styles.reasonText} numberOfLines={1}>
+                  {item.reason || 'General checkup'}
+                </Text>
+              </View>
             </View>
+
             <View style={styles.timeSlot}>
               <Icon name="time-outline" size={16} color="#0CB69B" />
               <Text style={styles.timeText}>{appointmentTime}</Text>
@@ -291,33 +351,27 @@ const DoctorHomeScreen = () => {
           </View>
 
           <View style={styles.appointmentFooter}>
-            <Text style={styles.reasonText} numberOfLines={1}>
-              {item.reason || 'General checkup'}
-            </Text>
-            <View style={styles.actionButtons}>
-              <CustomButton
-                title="Start"
+            <TouchableOpacity
+              style={[styles.actionButton, styles.viewButton]}
+              onPress={() =>
+                navigation.navigate('AppointmentDetail', {appointment: item})
+              }>
+              <Icon name="eye-outline" size={16} color="#FF9F40" />
+              <Text style={styles.viewButtonText}>View Details</Text>
+            </TouchableOpacity>
+
+            {/* {item.status === 'confirmed' && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.startButton]}
                 onPress={() =>
                   navigation.navigate('VideoCall', {appointment: item})
-                }
-                style={[styles.actionButton, styles.startButton]}
-                textStyle={styles.actionButtonText}
-                icon={<Icon name="videocam" size={16} color="#fff" />}
-              />
-
-              <CustomButton
-                title="Reschedule"
-                onPress={() =>
-                  navigation.navigate('RescheduleAppointment', {
-                    appointmentId: item.id,
-                  })
-                }
-                style={[styles.actionButton, styles.rescheduleButton]}
-                textStyle={[styles.actionButtonText, styles.rescheduleText]}
-              />
-            </View>
+                }>
+                <Icon name="videocam" size={16} color="#FFF" />
+                <Text style={styles.startButtonText}>Start</Text>
+              </TouchableOpacity>
+            )} */}
           </View>
-        </View>
+        </TouchableOpacity>
       );
     } catch (error) {
       console.error('Error rendering appointment item:', error);
@@ -574,21 +628,67 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  appointmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 5,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginBottom: 12,
+  },
   patientInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   patientAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 23,
     backgroundColor: '#E6F8F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  patientImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 23,
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#0CB69B',
   },
@@ -603,14 +703,29 @@ const styles = StyleSheet.create({
   appointmentType: {
     fontSize: 14,
     color: '#666',
+    marginTop: 2,
+  },
+  reasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
+  },
+  reasonLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginRight: 4,
+  },
+  reasonText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
   },
   timeSlot: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E6F8F6',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 12,
   },
   timeText: {
@@ -620,18 +735,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   appointmentFooter: {
-    marginTop: 15,
+    marginTop: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  reasonText: {
-    fontSize: 14,
-    color: '#666',
-    width: '40%',
-  },
-  actionButtons: {
-    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   actionButton: {
     flexDirection: 'row',
@@ -641,22 +747,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 8,
   },
+  viewButton: {
+    backgroundColor: '#FFF0E6',
+    borderWidth: 1,
+    borderColor: '#FF9F40',
+  },
+  viewButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FF9F40',
+    marginLeft: 4,
+  },
   startButton: {
     backgroundColor: '#0CB69B',
   },
-  rescheduleButton: {
-    backgroundColor: '#E6F8F6',
-    borderWidth: 1,
-    borderColor: '#0CB69B',
-  },
-  actionButtonText: {
+  startButtonText: {
     fontSize: 12,
     fontWeight: '500',
     color: '#fff',
     marginLeft: 4,
-  },
-  rescheduleText: {
-    color: '#0CB69B',
   },
   emptyStateContainer: {
     alignItems: 'center',

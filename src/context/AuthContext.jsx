@@ -18,7 +18,7 @@ export const AuthProvider = ({children}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const API_URL = 'http://192.168.1.8:3000/api'; // Using teammate's IP
+  const API_URL = 'http://192.168.1.5:3000/api'; // Using teammate's IP
 
   useEffect(() => {
     // Initial load
