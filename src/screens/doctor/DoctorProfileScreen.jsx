@@ -9,17 +9,20 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import {useAuth} from '../../context/AuthContext';
 import {useNavigation} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
 
 const DoctorProfileScreen = () => {
-  const {user, logout} = useAuth();
+  const {user, logout, uploadProfilePicture} = useAuth();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
   // Doctor data state
   const [name, setName] = useState(user?.name || '');
@@ -109,6 +112,60 @@ const DoctorProfileScreen = () => {
     ]);
   };
 
+  // Add image picker function
+  const handleImagePicker = () => {
+    Alert.alert(
+      'Select Profile Picture',
+      'Choose an option to update your profile picture',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Choose from Library',
+          onPress: openImageLibrary,
+        },
+      ]
+    );
+  };
+
+  const openImageLibrary = () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+      maxWidth: 500,
+      maxHeight: 500,
+    };
+
+    launchImageLibrary(options, async (response) => {
+      if (response.didCancel || response.error) {
+        return;
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        const imageUri = response.assets[0].uri;
+        setImageLoading(true);
+
+        try {
+          const result = await uploadProfilePicture(imageUri);
+          
+          if (result.success) {
+            Alert.alert('Success', 'Profile picture updated successfully!');
+            // Refresh doctor details to get updated avatar
+            fetchDoctorDetails();
+          } else {
+            Alert.alert('Error', result.message || 'Failed to update profile picture');
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+        } finally {
+          setImageLoading(false);
+        }
+      }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -127,12 +184,41 @@ const DoctorProfileScreen = () => {
       <ScrollView style={styles.content}>
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{name.charAt(0)}</Text>
+            <View style={styles.profilePictureContainer}>
+              {user?.avatar_url ? (
+                <Image
+                  source={{ uri: user.avatar_url }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{name.charAt(0)}</Text>
+                </View>
+              )}
+              
+              {/* Edit Icon Overlay */}
+              <TouchableOpacity
+                style={styles.editIconContainer}
+                onPress={handleImagePicker}
+                disabled={imageLoading}
+              >
+                {imageLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Icon name="camera" size={16} color="#fff" />
+                )}
+              </TouchableOpacity>
             </View>
+
             {isEditing && (
-              <TouchableOpacity style={styles.changePhotoButton}>
-                <Text style={styles.changePhotoText}>Change Photo</Text>
+              <TouchableOpacity 
+                style={styles.changePhotoButton}
+                onPress={handleImagePicker}
+                disabled={imageLoading}
+              >
+                <Text style={styles.changePhotoText}>
+                  {imageLoading ? 'Uploading...' : 'Change Photo'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -151,26 +237,6 @@ const DoctorProfileScreen = () => {
                 <Text style={styles.fieldValue}>{name}</Text>
               )}
             </View>
-
-            {/* <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <Text style={styles.fieldValue}>{email}</Text>
-            </View> */}
-
-            {/* <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Phone</Text>
-              {isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Enter your phone number"
-                  keyboardType="phone-pad"
-                />
-              ) : (
-                <Text style={styles.fieldValue}>{phone || 'Not provided'}</Text>
-              )}
-            </View> */}
 
             <View style={styles.infoField}>
               <Text style={styles.fieldLabel}>Specialty</Text>
@@ -351,6 +417,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  
+  // Add new styles for profile picture
+  profilePictureContainer: {
+    position: 'relative',
+    marginBottom: 10,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e0e0e0',
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#0CB69B',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  
   avatar: {
     width: 100,
     height: 100,
@@ -358,7 +450,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0CB69B',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
   },
   avatarText: {
     color: '#fff',
@@ -372,6 +463,8 @@ const styles = StyleSheet.create({
     color: '#0CB69B',
     fontSize: 16,
   },
+  
+  // ...rest of your existing styles...
   infoContainer: {
     marginBottom: 20,
   },

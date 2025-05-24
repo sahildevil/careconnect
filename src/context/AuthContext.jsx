@@ -20,6 +20,56 @@ export const AuthProvider = ({children}) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const API_URL = 'http://192.168.1.5:3000/api';
 
+  // Modify the login function to fetch doctor data including avatar_url
+  const login = async (email, password, selectedUserType) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await authService.login(email, password, selectedUserType);
+
+      if (response.success) {
+        let userData = response.user;
+        
+        // If user is a doctor, fetch additional doctor data including avatar_url
+        if (selectedUserType === 'doctor' && userData.id) {
+          try {
+            const doctorResponse = await doctorService.getDoctorById(userData.id);
+            if (doctorResponse.success && doctorResponse.doctor) {
+              // Merge doctor data with user data, prioritizing doctor table data
+              userData = {
+                ...userData,
+                ...doctorResponse.doctor,
+                user_type: selectedUserType // Ensure user_type is preserved
+              };
+            }
+          } catch (doctorError) {
+            console.log('Could not fetch doctor data:', doctorError);
+            // Continue with basic user data if doctor fetch fails
+          }
+        }
+
+        // Store all data
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        await AsyncStorage.setItem('token', response.token);
+        await AsyncStorage.setItem('userType', selectedUserType);
+
+        setUser(userData);
+        setUserType(selectedUserType);
+
+        return { success: true, user: userData };
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Initial load
     loadUserFromStorage();
@@ -99,54 +149,55 @@ export const AuthProvider = ({children}) => {
   const loadUserFromStorage = async () => {
     try {
       setLoading(true);
-      console.log('Loading user data from storage...');
+      
+      const [userData, tokenData, userTypeData] = await Promise.all([
+        AsyncStorage.getItem('user'),
+        AsyncStorage.getItem('token'),
+        AsyncStorage.getItem('userType'),
+      ]);
 
-      const userData = await AsyncStorage.getItem('user');
-      const userTypeData = await AsyncStorage.getItem('userType');
-      const tokenData = await AsyncStorage.getItem('token');
-
-      console.log('Storage check:', {
+      console.log('Loading from storage:', {
         hasUser: !!userData,
-        hasUserType: !!userTypeData,
         hasToken: !!tokenData,
+        hasUserType: !!userTypeData,
       });
 
-      if (userData && userTypeData && tokenData) {
-        const parsedUserData = JSON.parse(userData);
-
-        // Validate the token
-        const isValid = await validateToken(tokenData);
-
-        if (isValid) {
-          setUser(parsedUserData);
-          setUserType(userTypeData);
-          console.log('User session restored successfully:', parsedUserData.id);
-
-          // Register device for notifications
+      if (userData && tokenData && userTypeData) {
+        let parsedUserData = JSON.parse(userData);
+        
+        // If user is a doctor, refresh doctor data to get latest avatar_url
+        if (userTypeData === 'doctor' && parsedUserData.id) {
           try {
-            await notificationService.onUserAuthenticated();
-          } catch (notifError) {
-            console.error('Notification registration failed:', notifError);
+            const doctorResponse = await doctorService.getDoctorById(parsedUserData.id);
+            if (doctorResponse.success && doctorResponse.doctor) {
+              // Update with latest doctor data including avatar_url
+              parsedUserData = {
+                ...parsedUserData,
+                ...doctorResponse.doctor,
+                user_type: userTypeData
+              };
+              
+              // Update stored data with latest info
+              await AsyncStorage.setItem('user', JSON.stringify(parsedUserData));
+            }
+          } catch (doctorError) {
+            console.log('Could not refresh doctor data:', doctorError);
           }
-
-          setIsInitialized(true);
-          return true;
-        } else {
-          console.log('Token validation failed - clearing stored data');
-          await handleAuthFailure();
         }
-      } else {
-        console.log('Incomplete stored session data');
-      }
 
-      setIsInitialized(true);
-      return false;
+        setUser(parsedUserData);
+        setUserType(userTypeData);
+        
+        console.log('User loaded from storage:', parsedUserData.name);
+      } else {
+        console.log('No complete auth data found in storage');
+      }
     } catch (error) {
       console.error('Error loading user from storage:', error);
-      setIsInitialized(true);
-      return false;
+      await handleAuthFailure();
     } finally {
       setLoading(false);
+      setIsInitialized(true);
     }
   };
 
@@ -222,58 +273,67 @@ export const AuthProvider = ({children}) => {
     }
   };
 
-  // Update login function
-  const login = async (email, password, userType) => {
+  // Modify the uploadProfilePicture function to update stored user data immediately
+  const uploadProfilePicture = async (imageUri) => {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await authService.login(email, password, userType);
-
-      if (response.success) {
-        const userData = response.user;
-
-        // Store everything before setting state
-        if (response.token) {
-          await AsyncStorage.setItem('token', response.token);
-        }
-        await AsyncStorage.setItem('user', JSON.stringify(userData));
-        await AsyncStorage.setItem('userType', userData.user_type);
-
-        console.log('User data saved after login:', userData.id);
-
-        // Set state
-        setUser(userData);
-        setUserType(userData.user_type);
-
-        // Handle doctor onboarding
-        if (userData.user_type === 'doctor') {
-          const needsOnboarding = await checkDoctorOnboarding(userData);
-
-          if (needsOnboarding) {
-            setLoading(false);
-            return {success: true, needsOnboarding: true};
-          }
-        }
-
-        // Register for notifications
-        try {
-          await notificationService.onUserAuthenticated();
-        } catch (notifError) {
-          console.error('Notification registration failed:', notifError);
-        }
+      
+      if (!user || user.user_type !== 'doctor') {
+        throw new Error('Only doctors can upload profile pictures');
       }
-
-      setLoading(false);
-      return response;
+      
+      // Create a form data object to send the image
+      const formData = new FormData();
+      
+      // Get file extension from URI
+      const uriParts = imageUri.split('.');
+      const fileExtension = uriParts[uriParts.length - 1];
+      
+      // Create a unique filename using the doctor's ID
+      const fileName = `doctor_${user.id}_${Date.now()}.${fileExtension}`;
+      
+      // Add the image to form data
+      formData.append('profilePicture', {
+        uri: imageUri,
+        name: fileName,
+        type: `image/${fileExtension}`,
+      });
+      
+      // Upload the image using doctorService
+      const response = await doctorService.uploadProfilePicture(formData);
+      
+      if (response.success) {
+        // Update user object with new avatar URL
+        const updatedUser = {
+          ...user,
+          avatar_url: response.avatar_url
+        };
+        
+        // Update local state and storage immediately
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        
+        return {
+          success: true,
+          message: 'Profile picture updated successfully',
+          avatar_url: response.avatar_url
+        };
+      } else {
+        throw new Error(response.message || 'Failed to upload profile picture');
+      }
+      
     } catch (error) {
+      setError(error.message || 'Failed to upload profile picture');
+      return {
+        success: false,
+        message: error.message || 'Failed to upload profile picture'
+      };
+    } finally {
       setLoading(false);
-      setError(error.message || 'Login failed');
-      throw error;
     }
   };
 
-  // Update logout function
   const logout = async () => {
     try {
       setLoading(true);
@@ -369,7 +429,8 @@ export const AuthProvider = ({children}) => {
     logout,
     resetPassword,
     updateUser,
-    refreshAuthState, // Expose this for manual refresh
+    refreshAuthState,
+    uploadProfilePicture, // Add the new function to the context
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

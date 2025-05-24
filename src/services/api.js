@@ -308,10 +308,9 @@ export const doctorService = {
   getDoctorById: async id => {
     try {
       const response = await api.get(`/doctors/${id}`);
-      console.log('Doctor data retrieved:', response.data.doctor);
       return response.data;
     } catch (error) {
-      console.error('Error fetching doctor details:', error);
+      console.error('Error fetching doctor by ID:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
@@ -383,6 +382,23 @@ export const doctorService = {
       );
       return response.data;
     } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
+    }
+  },
+
+  // Add this method to the doctorService object
+  uploadProfilePicture: async (formData) => {
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+      
+      const response = await api.post('/doctors/upload-profile-picture', formData, config);
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
