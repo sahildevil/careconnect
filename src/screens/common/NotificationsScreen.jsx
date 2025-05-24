@@ -16,6 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useAuth} from '../../context/AuthContext';
 import {format, isToday, isYesterday} from 'date-fns';
 import {notificationService} from '../../services/notifications';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
@@ -24,7 +25,7 @@ const NotificationsScreen = () => {
   const [filter, setFilter] = useState('all'); // all, unread, read
   const navigation = useNavigation();
   const {user, userType} = useAuth();
-
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     fetchNotifications();
 
@@ -118,11 +119,32 @@ const NotificationsScreen = () => {
       notification.notification_type === 'appointment_reminder'
     ) {
       if (notification.related_id) {
-        navigation.navigate('AppointmentDetail', {
-          appointmentId: notification.related_id,
-          fromReminder:
-            notification.notification_type === 'appointment_reminder',
-        });
+        console.log(
+          `Navigating to AppointmentDetail for ${userType} user with ID: ${notification.related_id}`,
+        );
+
+        // Determine which flow to use based on user type
+        if (userType === 'doctor') {
+          // For doctor users - navigate to DoctorFlow stack
+          navigation.navigate('DoctorFlow', {
+            screen: 'AppointmentDetail',
+            params: {
+              appointmentId: notification.related_id,
+              fromReminder:
+                notification.notification_type === 'appointment_reminder',
+            },
+          });
+        } else {
+          // For patient users - navigate to PatientFlow stack
+          navigation.navigate('PatientFlow', {
+            screen: 'AppointmentDetail',
+            params: {
+              appointmentId: notification.related_id,
+              fromReminder:
+                notification.notification_type === 'appointment_reminder',
+            },
+          });
+        }
       }
     }
   };
@@ -273,10 +295,10 @@ const NotificationsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#0CB69B" barStyle="light-content" />
+      <StatusBar backgroundColor="#000000" barStyle="dark-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
             style={styles.backButton}

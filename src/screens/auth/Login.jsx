@@ -97,12 +97,14 @@ const Login = ({navigation, route}) => {
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
+              placeholderTextColor={'#999'}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             <TextInput
               style={styles.input}
               placeholder="Password"
+              placeholderTextColor={'#999'}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
-    height: 50,
+    height: 60,
     justifyContent: 'center',
   },
   loginButtonText: {

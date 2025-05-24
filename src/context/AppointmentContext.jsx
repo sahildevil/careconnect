@@ -30,7 +30,7 @@ export const AppointmentProvider = ({ children }) => {
         setError('Failed to fetch appointments');
       }
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.log('Error fetching appointments:', error);
       setError(error.message || 'Failed to fetch appointments');
     } finally {
       setLoading(false);

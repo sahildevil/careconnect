@@ -19,7 +19,7 @@ const UserTypeSelection = ({navigation}) => {
       
       {/* Green curved shape at the top-right corner */}
       <View style={styles.topRightShape} />
-      
+      <View style={styles.bottomRightShape} />
       <View style={styles.headerContainer}>
         <Text style={styles.logoText}>CareConnect</Text>
         <Text style={styles.welcomeText}>Welcome to CareConnect</Text>
@@ -84,8 +84,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -100,
     right: -100,
-    width: width * 0.7,
-    height: width * 0.7,
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: width * 0.7 / 2,
+    backgroundColor: '#5cedd7',//#0CB69B
+    zIndex: 0,
+  },
+  bottomRightShape: {
+    position: 'absolute',
+    bottom: -100,
+    left: -100,
+    width: width * 0.5,
+    height: width * 0.5,
     borderRadius: width * 0.7 / 2,
     backgroundColor: '#5cedd7',//#0CB69B
     zIndex: 0,

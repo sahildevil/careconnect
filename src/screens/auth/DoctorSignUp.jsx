@@ -82,7 +82,6 @@ const DoctorSignUp = () => {
       if (response.success) {
         Alert.alert(
           'Registration Successful',
-          'Your account has been created and is pending approval. You will be notified when your account is approved.',
           [
             {
               text: 'OK',

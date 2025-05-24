@@ -109,12 +109,14 @@ const SignUp = () => {
             <TextInput
               style={styles.input}
               placeholder="Full Name"
+              placeholderTextColor={'#999'}
               value={name}
               onChangeText={setName}
             />
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor={'#999'}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -123,6 +125,7 @@ const SignUp = () => {
             <TextInput
               style={styles.input}
               placeholder="Password"
+              placeholderTextColor={'#999'}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -130,6 +133,7 @@ const SignUp = () => {
             <TextInput
               style={styles.input}
               placeholder="Confirm Password"
+              placeholderTextColor={'#999'}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -137,6 +141,7 @@ const SignUp = () => {
             <TextInput
               style={styles.input}
               placeholder="Phone Number"
+              placeholderTextColor={'#999'}
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -172,6 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   scrollContainer: {
+    marginTop: 20,
     flexGrow: 1,
     padding: 20,
   },
@@ -213,7 +219,7 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
     marginBottom: 20,
-    height: 50,
+    height: 60,
     justifyContent: 'center',
   },
   signupButtonText: {
