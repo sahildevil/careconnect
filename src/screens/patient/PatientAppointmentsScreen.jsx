@@ -11,7 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
 import {useNetInfo} from '@react-native-community/netinfo';
@@ -33,27 +33,23 @@ const PatientAppointmentsScreen = () => {
   const netInfo = useNetInfo();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    // Check network connectivity
-    if (!netInfo.isConnected && netInfo.isInternetReachable === false) {
-      Alert.alert(
-        'No Internet Connection',
-        'Please check your internet connection and try again.',
-      );
-    } else {
-      // Use the context's fetch function
-      fetchAppointments();
-    }
-  }, [netInfo.isConnected, fetchAppointments]);
+  // Use useFocusEffect instead of useEffect for navigation focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log(`PatientAppointmentsScreen focused for user: ${user?.id}`);
 
-  useEffect(() => {
-    // Refresh appointments when the screen is focused
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchAppointments();
-    });
-
-    return unsubscribe;
-  }, [navigation, fetchAppointments]);
+      // Check network connectivity
+      if (!netInfo.isConnected && netInfo.isInternetReachable === false) {
+        Alert.alert(
+          'No Internet Connection',
+          'Please check your internet connection and try again.',
+        );
+      } else if (user?.id) {
+        // Only fetch if we have a valid user
+        fetchAppointments();
+      }
+    }, [netInfo.isConnected, fetchAppointments, user?.id]),
+  );
 
   const cancelAppointment = async appointmentId => {
     try {
@@ -106,7 +102,9 @@ const PatientAppointmentsScreen = () => {
         );
       });
     } else if (activeTab === 'completed') {
-      filteredAppointments = appointments.filter(app => app.status === 'completed');
+      filteredAppointments = appointments.filter(
+        app => app.status === 'completed',
+      );
     } else if (activeTab === 'cancelled') {
       // Handle both spellings for backwards compatibility
       filteredAppointments = appointments.filter(
@@ -255,9 +253,11 @@ const PatientAppointmentsScreen = () => {
   };
 
   const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    fetchAppointments().finally(() => setRefreshing(false));
-  }, [fetchAppointments]);
+    if (user?.id) {
+      setRefreshing(true);
+      fetchAppointments().finally(() => setRefreshing(false));
+    }
+  }, [fetchAppointments, user?.id]);
 
   return (
     <SafeAreaView style={styles.container}>

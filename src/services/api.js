@@ -67,7 +67,6 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshingAuth) {
-        // If we're already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({resolve, reject});
         })
@@ -84,52 +83,65 @@ api.interceptors.response.use(
       isRefreshingAuth = true;
 
       try {
-        console.log('API: Got 401, attempting to refresh auth...');
+        console.log('API: Got 401, checking token validity...');
 
-        // Check if we have valid stored credentials
         const token = await AsyncStorage.getItem('token');
         const userString = await AsyncStorage.getItem('user');
 
         if (token && userString) {
-          // Try to validate the token
+          // Add timestamp to prevent caching issues
           const validateResponse = await fetch(
-            `${API_URL}/auth/validate-token`,
+            `${API_URL}/auth/validate-token?t=${Date.now()}`,
             {
               method: 'GET',
               headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
               },
             },
           );
 
           if (validateResponse.status === 200) {
-            console.log('API: Token still valid, retrying request');
-            processQueue(null, token);
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          }
-        }
+            const data = await validateResponse.json();
+            console.log('API: Token validation successful, retrying request');
 
-        // Token is invalid - clear auth and redirect to login
-        console.log('API: Token invalid, clearing auth state');
+            // Update user data if it changed
+            const currentUser = JSON.parse(userString);
+            if (data.user && data.user.id === currentUser.id) {
+              processQueue(null, token);
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return api(originalRequest);
+            } else {
+              console.log('API: User data mismatch, clearing auth');
+              throw new Error('User session mismatch');
+            }
+          } else {
+            console.log('API: Token validation failed, clearing auth');
+            throw new Error('Token validation failed');
+          }
+        } else {
+          throw new Error('No stored credentials');
+        }
+      } catch (refreshError) {
+        console.log('API: Auth refresh failed, clearing session');
+
+        // Clear auth state
         await AsyncStorage.removeItem('user');
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('userType');
 
         processQueue(new Error('Authentication failed'), null);
 
-        // Show alert to user
-        Alert.alert(
-          'Session Expired',
-          'Your session has expired. Please log in again.',
-          [{text: 'OK'}],
-        );
+        // Only show alert if this isn't a background request
+        if (!originalRequest.url.includes('validate-token')) {
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please log in again.',
+            [{text: 'OK'}],
+          );
+        }
 
-        return Promise.reject(error);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        console.error('API: Error during auth refresh:', refreshError);
         return Promise.reject(error);
       } finally {
         isRefreshingAuth = false;
@@ -317,25 +329,25 @@ export const doctorService = {
   },
 
   getDoctorProfile: async () => {
-  try {
-    // Get current user from storage
-    const userString = await AsyncStorage.getItem('user');
-    if (!userString) {
-      throw new Error('User not authenticated');
+    try {
+      // Get current user from storage
+      const userString = await AsyncStorage.getItem('user');
+      if (!userString) {
+        throw new Error('User not authenticated');
+      }
+
+      const userData = JSON.parse(userString);
+      if (!userData || !userData.id) {
+        throw new Error('User ID not found');
+      }
+
+      // Use the existing getDoctorById method
+      const response = await api.get(`/doctors/${userData.id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response ? error.response.data : new Error('Network error');
     }
-    
-    const userData = JSON.parse(userString);
-    if (!userData || !userData.id) {
-      throw new Error('User ID not found');
-    }
-    
-    // Use the existing getDoctorById method
-    const response = await api.get(`/doctors/${userData.id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response ? error.response.data : new Error('Network error');
-  }
-},
+  },
 
   updateDoctorProfile: async data => {
     try {
@@ -494,10 +506,53 @@ export const appointmentService = {
 
   getAppointmentById: async appointmentId => {
     try {
+      console.log('Fetching appointment details for ID:', appointmentId);
+
+      // Validate appointmentId
+      if (
+        !appointmentId ||
+        appointmentId === 'undefined' ||
+        appointmentId === 'null'
+      ) {
+        throw new Error('Invalid appointment ID provided');
+      }
+
+      // Check if user is authenticated
+      const token = await AsyncStorage.getItem('token');
+      const userString = await AsyncStorage.getItem('user');
+
+      if (!token || !userString) {
+        throw new Error('User not authenticated');
+      }
+
+      const userData = JSON.parse(userString);
+      console.log(
+        `Fetching appointment ${appointmentId} for user ${userData.id}`,
+      );
+
       const response = await api.get(`/appointments/${appointmentId}`);
+
+      console.log('Appointment details response:', {
+        success: response.data?.success,
+        hasAppointment: !!response.data?.appointment,
+        appointmentId: response.data?.appointment?.id,
+      });
+
       return response.data;
     } catch (error) {
       console.error('Error fetching appointment details:', error);
+
+      // Provide more specific error messages
+      if (error.response?.status === 404) {
+        throw new Error(
+          'Appointment not found or you do not have permission to view it',
+        );
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to view this appointment');
+      } else if (error.response?.status === 401) {
+        throw new Error('Please log in again to continue');
+      }
+
       throw error.response ? error.response.data : new Error('Network error');
     }
   },
@@ -551,18 +606,72 @@ export const appointmentService = {
     try {
       console.log(
         `${approved ? 'Approving' : 'Rejecting'} appointment ${appointmentId}`,
+        {
+          approved,
+          rejectionReason,
+        },
       );
 
-      const response = await api.put(`/appointments/${appointmentId}/approve`, {
+      // Validate input
+      if (!appointmentId) {
+        throw new Error('Appointment ID is required');
+      }
+
+      if (typeof approved !== 'boolean') {
+        throw new Error('Approved field must be a boolean');
+      }
+
+      const requestData = {
         approved,
-        notes: rejectionReason,
+      };
+
+      // Only add notes if rejecting and reason is provided
+      if (!approved && rejectionReason) {
+        requestData.notes = rejectionReason;
+      }
+
+      console.log('Sending approval request with data:', requestData);
+
+      const response = await api.put(
+        `/appointments/${appointmentId}/approve`,
+        requestData,
+      );
+
+      console.log('Approval response:', {
+        status: response.status,
+        success: response.data?.success,
+        message: response.data?.message,
       });
 
-      console.log('Approval response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error approving/rejecting appointment:', error);
-      throw error.response ? error.response.data : new Error('Network error');
+
+      // Log more detailed error information
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        const errorMessage =
+          error.response.data?.message || 'Invalid request data';
+        throw new Error(errorMessage);
+      } else if (error.response?.status === 403) {
+        throw new Error(
+          'You do not have permission to approve this appointment',
+        );
+      } else if (error.response?.status === 404) {
+        throw new Error('Appointment not found');
+      } else if (error.response?.status === 401) {
+        throw new Error('Please log in again to continue');
+      }
+
+      throw error.response
+        ? error.response.data
+        : new Error('Network error during approval');
     }
   },
 };

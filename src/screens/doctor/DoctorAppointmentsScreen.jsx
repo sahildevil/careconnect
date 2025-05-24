@@ -100,60 +100,88 @@ const DoctorAppointmentsScreen = () => {
     return appointments;
   };
 
-  // Replace your existing handleAppointmentApproval function with this improved version:
-  const handleAppointmentApproval = async (appointmentId, approved, reason = '') => {
-    try {
-      setLoading(true);
-      
-      console.log(`Attempting to ${approved ? 'approve' : 'reject'} appointment ${appointmentId}`);
-      
-      const response = await appointmentService.approveAppointment(
-        appointmentId,
-        approved,
-        approved ? null : reason
-      );
+  // Update the handleAppointmentApproval function
 
-      if (response.success) {
-        // Find the appointment that was updated
-        const updatedAppointment = appointments.find(app => app.id === appointmentId);
+const handleAppointmentApproval = async (appointmentId, approved, reason = '') => {
+  try {
+    setLoading(true);
+    
+    console.log(`Attempting to ${approved ? 'approve' : 'reject'} appointment ${appointmentId}`, {
+      approved,
+      reason
+    });
+
+    // Validate input
+    if (!appointmentId) {
+      Alert.alert('Error', 'Invalid appointment ID');
+      return;
+    }
+
+    // For rejections, reason is optional but can be provided
+    const response = await appointmentService.approveAppointment(
+      appointmentId,
+      approved,
+      approved ? null : (reason || null) // Only pass reason for rejections
+    );
+
+    console.log('Approval response received:', response);
+
+    if (response.success) {
+      // Find the appointment that was updated
+      const updatedAppointment = appointments.find(app => app.id === appointmentId);
+      
+      if (updatedAppointment) {
+        // Create updated version of the appointment
+        const updatedAppointmentData = {
+          ...updatedAppointment,
+          status: approved ? 'confirmed' : 'canceled',
+          notes: approved ? updatedAppointment.notes : (reason || updatedAppointment.notes),
+          updated_at: new Date().toISOString()
+        };
         
-        if (updatedAppointment) {
-          // Create updated version of the appointment
-          const updatedAppointmentData = {
-            ...updatedAppointment,
-            status: approved ? 'confirmed' : 'canceled',
-            notes: approved ? updatedAppointment.notes : reason
-          };
-          
-          // Update the appointments list with the new status
-          setAppointments(appointments.map(app => 
-            app.id === appointmentId ? updatedAppointmentData : app
-          ));
-          
-          // Show success message
-          Alert.alert(
-            'Success',
-            approved 
-              ? 'Appointment has been confirmed' 
-              : 'Appointment has been rejected'
-          );
-          
-          // Force tab change to see the appointment in its new section
-          if (approved && activeTab === 'pending') {
-            // Optional: automatically switch to confirmed tab to see the appointment
-            setActiveTab('upcoming');
-          }
+        // Update the appointments list with the new status
+        setAppointments(appointments.map(app => 
+          app.id === appointmentId ? updatedAppointmentData : app
+        ));
+        
+        // Show success message
+        Alert.alert(
+          'Success',
+          approved 
+            ? 'Appointment has been confirmed successfully' 
+            : 'Appointment has been rejected successfully'
+        );
+        
+        // Force tab change to see the appointment in its new section
+        if (approved && activeTab === 'pending') {
+          // Optional: automatically switch to confirmed tab to see the appointment
+          setActiveTab('upcoming');
         }
       } else {
-        Alert.alert('Error', 'Failed to update appointment status');
+        console.warn('Updated appointment not found in current list');
+        // Refresh the appointments list to get latest data
+        fetchAppointments();
+        Alert.alert(
+          'Success',
+          approved 
+            ? 'Appointment has been confirmed' 
+            : 'Appointment has been rejected'
+        );
       }
-    } catch (error) {
-      console.error('Error updating appointment status:', error);
-      Alert.alert('Error', 'Failed to update appointment status');
-    } finally {
-      setLoading(false);
+    } else {
+      console.error('Approval failed:', response);
+      Alert.alert('Error', response.message || 'Failed to update appointment status');
     }
-  };
+  } catch (error) {
+    console.error('Error updating appointment status:', error);
+    
+    // Show more specific error message
+    const errorMessage = error.message || 'Failed to update appointment status';
+    Alert.alert('Error', errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Add this function to prompt for rejection reason
   const promptRejectReason = appointmentId => {

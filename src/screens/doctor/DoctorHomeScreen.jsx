@@ -10,10 +10,11 @@ import {
   FlatList,
   ActivityIndicator,
   AppState,
+  Alert, // Add this import
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
-import {appointmentService} from '../../services/api';
+import {appointmentService, doctorService} from '../../services/api'; // Add doctorService import
 import {useAuth} from '../../context/AuthContext';
 import {CustomButton} from '../../components';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -91,7 +92,7 @@ const DoctorHomeScreen = () => {
     return appointmentDate > today;
   };
 
-  // Update the fetchAppointments function with retry logic
+  // Update the fetchAppointments function with better debugging
 
   const fetchAppointments = async (retryCount = 0) => {
     try {
@@ -108,7 +109,6 @@ const DoctorHomeScreen = () => {
           'No user data available, waiting for auth to complete...',
         );
 
-        // If no user and this is first attempt, wait a bit and retry
         if (retryCount === 0) {
           setTimeout(() => fetchAppointments(1), 1000);
           return;
@@ -123,6 +123,12 @@ const DoctorHomeScreen = () => {
         'type:',
         user.user_type,
       );
+      console.log('User profile data:', {
+        id: user.id,
+        name: user.name,
+        specialty: user.specialty,
+        onboarding_complete: user.profile?.onboarding_complete,
+      });
 
       const response = await appointmentService.getDoctorAppointments(user.id);
       console.log('Appointments response:', response);
@@ -131,18 +137,38 @@ const DoctorHomeScreen = () => {
         const appointments = response.appointments;
         console.log(`Received ${appointments.length} appointments from server`);
 
-        // If we got 0 appointments and this is the first attempt, try once more
+        // Log server debug info if available
+        if (response.debug) {
+          console.log('Server debug info:', response.debug);
+        }
+
+        // If we got 0 appointments, let's check if the doctor actually exists in database
         if (appointments.length === 0 && retryCount === 0) {
-          console.log('Got 0 appointments, retrying once more...');
+          console.log('Got 0 appointments, checking doctor profile...');
+
+          try {
+            const doctorProfile = await doctorService.getDoctorProfile();
+            console.log('Doctor profile check:', {
+              success: doctorProfile.success,
+              doctorId: doctorProfile.doctor?.id,
+              doctorName: doctorProfile.doctor?.name,
+              isVisible: doctorProfile.doctor?.is_visible,
+              onboardingComplete: doctorProfile.doctor?.onboarding_complete,
+            });
+          } catch (profileError) {
+            console.error('Error checking doctor profile:', profileError);
+          }
+
+          console.log('Retrying appointment fetch once more...');
           setTimeout(() => fetchAppointments(1), 2000);
           return;
         }
 
-        // Get today's date string for comparison
+        // Process appointments as before...
         const todayString = getDateString(new Date());
         console.log("Today's date string:", todayString);
 
-        // Filter appointments for today with improved date comparison
+        // Filter appointments for today
         const todayAppts = appointments.filter(app => {
           const appointmentDateString = getDateString(app.appointment_date);
           const isTodayAppointment = appointmentDateString === todayString;
@@ -156,12 +182,11 @@ const DoctorHomeScreen = () => {
           return isTodayAppointment && isActiveStatus;
         });
 
-        // Filter upcoming appointments (future dates, not today)
+        // Filter upcoming appointments
         const upcomingAppts = appointments.filter(app => {
           const isFutureAppointment = isFuture(app.appointment_date);
           const isActiveStatus =
             app.status !== 'canceled' && app.status !== 'completed';
-
           return isFutureAppointment && isActiveStatus;
         });
 
@@ -178,22 +203,10 @@ const DoctorHomeScreen = () => {
         const cancelledCount = appointments.filter(
           app => app.status === 'canceled',
         ).length;
-
         const pendingCount = pendingAppts.length;
 
         console.log(
           `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming, ${pendingCount} pending`,
-        );
-
-        // Log today's appointments for debugging
-        console.log(
-          "Today's appointments:",
-          todayAppts.map(app => ({
-            id: app.id,
-            date: app.appointment_date,
-            patient: app.patients?.name || 'Unknown',
-            status: app.status,
-          })),
         );
 
         setTodayAppointments(todayAppts);
@@ -206,8 +219,10 @@ const DoctorHomeScreen = () => {
           pending: pendingCount,
         });
       } else {
-        console.error('Invalid response format or no appointments found');
-        // Set empty arrays if no valid data
+        console.error(
+          'Invalid response format or no appointments found:',
+          response,
+        );
         setTodayAppointments([]);
         setUpcomingAppointments([]);
         setStats({
@@ -224,20 +239,11 @@ const DoctorHomeScreen = () => {
       // If this is first attempt and we got an error, try once more
       if (retryCount === 0) {
         console.log('First attempt failed, retrying...');
-        setTimeout(() => fetchAppointments(1), 2000);
+        setTimeout(() => fetchAppointments(1), 3000);
         return;
       }
 
-      // Set empty arrays on error
-      setTodayAppointments([]);
-      setUpcomingAppointments([]);
-      setStats({
-        today: 0,
-        upcoming: 0,
-        completed: 0,
-        cancelled: 0,
-        pending: 0,
-      });
+      Alert.alert('Error', 'Failed to load appointments. Please try again.');
     } finally {
       setLoading(false);
     }

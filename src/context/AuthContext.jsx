@@ -86,14 +86,29 @@ export const AuthProvider = ({children}) => {
   };
 
   // Handle authentication failure
+  // const handleAuthFailure = async () => {
+  //   console.log('Handling auth failure - clearing state');
+  //   await AsyncStorage.removeItem('user');
+  //   await AsyncStorage.removeItem('token');
+  //   await AsyncStorage.removeItem('userType');
+  //   setUser(null);
+  //   setUserType(null);
+  // };
   const handleAuthFailure = async () => {
-    console.log('Handling auth failure - clearing state');
+  console.log('Handling auth failure - clearing state');
+  try {
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('userType');
-    setUser(null);
-    setUserType(null);
-  };
+    await AsyncStorage.removeItem('fcmToken');
+  } catch (error) {
+    console.error('Error clearing storage during auth failure:', error);
+  }
+  
+  setUser(null);
+  setUserType(null);
+  setError(null);
+};
 
   // Update loadUserFromStorage with better error handling
   const loadUserFromStorage = async () => {
@@ -160,19 +175,34 @@ export const AuthProvider = ({children}) => {
         return false;
       }
 
-      // Try main validation endpoint
+      // Add request ID for tracking
+      const requestId = Math.random().toString(36).substr(2, 9);
+
+      // Try main validation endpoint with unique request ID
       const response = await fetch(`${API_URL}/auth/validate-token`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Request-ID': requestId,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
         },
         timeout: 10000,
       });
 
+      console.log(
+        `Token validation response status: ${response.status} (Request: ${requestId})`,
+      );
+
       if (response.status === 200) {
         const data = await response.json();
-        console.log('Token validation successful');
+        console.log(
+          `Token validation successful (Request: ${
+            data.requestId || requestId
+          })`,
+        );
 
         // Update user data if provided by server
         if (data.success && data.user) {
@@ -181,7 +211,7 @@ export const AuthProvider = ({children}) => {
             ? JSON.parse(currentUserString)
             : null;
 
-          // Only update if user data has changed
+          // Only update if user data has changed or doesn't exist
           if (!currentUser || currentUser.id !== data.user.id) {
             console.log('Updating user data from server');
             await AsyncStorage.setItem('user', JSON.stringify(data.user));
@@ -193,12 +223,20 @@ export const AuthProvider = ({children}) => {
       } else if (response.status === 401) {
         console.log('Token is invalid or expired (401)');
         return false;
+      } else if (response.status === 404) {
+        console.log(
+          'User profile not found on server (404) - this usually means the user was deleted or session expired',
+        );
+        return false;
       } else {
         console.log(`Token validation failed with status: ${response.status}`);
 
-        // Retry once for network issues
-        if (retryCount === 0) {
-          console.log('Retrying token validation...');
+        // Only retry for network-related errors, not auth errors
+        if (
+          retryCount === 0 &&
+          (response.status >= 500 || response.status === 0)
+        ) {
+          console.log('Server error, retrying token validation...');
           await new Promise(resolve => setTimeout(resolve, 1000));
           return await validateToken(token, 1);
         }
@@ -211,7 +249,9 @@ export const AuthProvider = ({children}) => {
       // Retry once for network errors
       if (
         retryCount === 0 &&
-        (error.message.includes('network') || error.message.includes('timeout'))
+        (error.message.includes('network') ||
+          error.message.includes('timeout') ||
+          error.message.includes('fetch'))
       ) {
         console.log('Network error, retrying validation...');
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -294,7 +334,13 @@ export const AuthProvider = ({children}) => {
 
       // Clear everything
       await handleAuthFailure();
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('fcmToken');
 
+      // Clear auth state
+      setUser(null);
+      setUserType(null);
       console.log('User logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);

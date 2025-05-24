@@ -53,21 +53,60 @@ const AppointmentDetailScreen = () => {
     }
   }, [route.params]);
 
+  // Update the fetchAppointmentDetails function
+
   const fetchAppointmentDetails = async appointmentId => {
     try {
       setLoading(true);
+      console.log(
+        'AppointmentDetailScreen: Fetching details for appointment:',
+        appointmentId,
+      );
+
+      // Validate appointmentId
+      if (
+        !appointmentId ||
+        appointmentId === 'undefined' ||
+        appointmentId === 'null'
+      ) {
+        console.error('Invalid appointment ID:', appointmentId);
+        Alert.alert('Error', 'Invalid appointment ID provided');
+        navigation.goBack();
+        return;
+      }
+
       const response = await appointmentService.getAppointmentById(
         appointmentId,
       );
 
-      if (response.success) {
+      console.log('AppointmentDetailScreen: Fetch response:', {
+        success: response?.success,
+        hasAppointment: !!response?.appointment,
+      });
+
+      if (response.success && response.appointment) {
         setAppointment(response.appointment);
+        console.log('AppointmentDetailScreen: Appointment loaded successfully');
       } else {
-        Alert.alert('Error', 'Failed to load appointment details');
+        console.error(
+          'AppointmentDetailScreen: Invalid response format or no appointment data',
+        );
+        Alert.alert('Error', 'Failed to load appointment details', [
+          {text: 'Go Back', onPress: () => navigation.goBack()},
+        ]);
       }
     } catch (error) {
-      console.error('Error fetching appointment details:', error);
-      Alert.alert('Error', 'Failed to load appointment details');
+      console.error(
+        'AppointmentDetailScreen: Error fetching appointment details:',
+        error,
+      );
+
+      const errorMessage =
+        error.message || 'Failed to load appointment details';
+
+      Alert.alert('Error', errorMessage, [
+        {text: 'Go Back', onPress: () => navigation.goBack()},
+      ]);
     } finally {
       setLoading(false);
     }
