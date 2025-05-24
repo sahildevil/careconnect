@@ -297,11 +297,14 @@ export const AuthProvider = ({children}) => {
         }
 
         // Register for notifications
-        try {
-          await notificationService.onUserAuthenticated();
-        } catch (notifError) {
-          console.error('Notification registration failed:', notifError);
-        }
+      try {
+        console.log(`Registering notifications for user: ${userData.name} (${userData.id})`);
+        await notificationService.onUserAuthenticated();
+        console.log('Notification registration completed');
+      } catch (notificationError) {
+        console.error('Failed to register for notifications:', notificationError);
+        // Don't fail login if notification registration fails
+      }
       }
 
       setLoading(false);
@@ -314,40 +317,47 @@ export const AuthProvider = ({children}) => {
   };
 
   // Update logout function
-  const logout = async () => {
+ const logout = async () => {
+  try {
+    setLoading(true);
+
+    // Get current user info for logging
+    const currentUser = await AsyncStorage.getItem('user');
+    const userName = currentUser ? JSON.parse(currentUser).name : 'Unknown';
+    
+    console.log(`Logging out user: ${userName}`);
+
+    // Unregister device from notifications BEFORE clearing storage
     try {
-      setLoading(true);
-
-      // Notify notification service
-      try {
-        await notificationService.onUserLoggedOut();
-      } catch (notifError) {
-        console.error('Notification logout failed:', notifError);
-      }
-
-      // Call logout API
-      try {
-        await authService.logout();
-      } catch (apiError) {
-        console.error('API logout failed:', apiError);
-      }
-
-      // Clear everything
-      await handleAuthFailure();
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('fcmToken');
-
-      // Clear auth state
-      setUser(null);
-      setUserType(null);
-      console.log('User logged out successfully');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLoading(false);
+      await notificationService.onUserLoggedOut();
+      console.log('Notification cleanup completed');
+    } catch (notifError) {
+      console.error('Notification logout failed:', notifError);
     }
-  };
+
+    // Call logout API
+    try {
+      await authService.logout();
+    } catch (apiError) {
+      console.error('API logout failed:', apiError);
+    }
+
+    // Clear everything
+    await handleAuthFailure();
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('fcmToken'); // Clear FCM token on logout
+
+    // Clear auth state
+    setUser(null);
+    setUserType(null);
+    console.log(`User ${userName} logged out successfully`);
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const checkDoctorOnboarding = useCallback(async userData => {
     if (userData?.user_type === 'doctor') {

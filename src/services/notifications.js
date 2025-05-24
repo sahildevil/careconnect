@@ -340,14 +340,19 @@ class NotificationService {
   }
 
   // Register FCM token with server - call this after user authentication
-  async registerDeviceToken() {
+async registerDeviceToken() {
     try {
       // Check if user is authenticated
       const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        console.log('No auth token found, skipping device registration');
+      const userString = await AsyncStorage.getItem('user');
+      
+      if (!token || !userString) {
+        console.log('No auth token or user found, skipping device registration');
         return false;
       }
+
+      const user = JSON.parse(userString);
+      console.log(`Registering device token for user: ${user.id} (${user.name})`);
 
       // Use stored FCM token or get a new one
       let fcmToken = this.fcmToken || (await AsyncStorage.getItem('fcmToken'));
@@ -358,13 +363,14 @@ class NotificationService {
           fcmToken = await messaging().getToken();
           this.fcmToken = fcmToken;
           await AsyncStorage.setItem('fcmToken', fcmToken);
+          console.log('New FCM token obtained:', fcmToken.substring(0, 20) + '...');
         } catch (error) {
           console.error('Failed to get FCM token:', error);
           return false;
         }
       }
 
-      console.log('Registering device token with server...');
+      console.log(`Registering device token for user ${user.id}:`, fcmToken.substring(0, 20) + '...');
 
       // Register with our server
       const response = await notificationApi.post(
@@ -375,17 +381,22 @@ class NotificationService {
         },
       );
 
-      console.log('Device registered for notifications:', response.data);
+      console.log(`Device registered for user ${user.id}:`, response.data.success);
 
       // Listen for token refresh
       const unsubscribe = messaging().onTokenRefresh(async newToken => {
-        console.log('FCM token refreshed:', newToken);
+        console.log('FCM token refreshed:', newToken.substring(0, 20) + '...');
         this.fcmToken = newToken;
         await AsyncStorage.setItem('fcmToken', newToken);
 
         // Only re-register if user is still authenticated
         const authToken = await AsyncStorage.getItem('token');
-        if (authToken) {
+        const currentUser = await AsyncStorage.getItem('user');
+        
+        if (authToken && currentUser) {
+          const userData = JSON.parse(currentUser);
+          console.log(`Re-registering refreshed token for user: ${userData.id}`);
+          
           await notificationApi.post('/notifications/register-device', {
             token: newToken,
             device_type: Platform.OS,
@@ -435,11 +446,33 @@ class NotificationService {
   // Call this method during logout
   async onUserLoggedOut() {
     try {
-      console.log('User logged out, clearing notification registration');
+      console.log('User logged out, unregistering device...');
+      
+      // Get the current FCM token
+      const fcmToken = this.fcmToken || (await AsyncStorage.getItem('fcmToken'));
+      
+      if (fcmToken) {
+        try {
+          // Unregister the device token from server
+          await notificationApi.delete('/notifications/unregister-device', {
+            data: { token: fcmToken }
+          });
+          console.log('Device token unregistered from server');
+        } catch (error) {
+          console.error('Error unregistering device token:', error);
+          // Don't fail logout if unregistration fails
+        }
+      }
+
+      // Clear local notification state but keep FCM token for next login
       this.fcmToken = null;
-      // Note: We keep the FCM token in AsyncStorage for next login
+      
+      // Clear all local notifications
+      await this.clearAllNotifications();
+      
+      console.log('Notification logout cleanup complete');
     } catch (error) {
-      console.error('Error during logout notification cleanup:', error);
+      console.error('Error during notification logout cleanup:', error);
     }
   }
 
@@ -459,7 +492,14 @@ class NotificationService {
 
     return unsubscribe;
   }
-
+  async clearAllNotifications() {
+    try {
+      await notifee.cancelAllNotifications();
+      console.log('All local notifications cleared');
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
+  }
   // Display a local notification from FCM message
   async displayNotification(remoteMessage) {
     try {
@@ -554,7 +594,23 @@ class NotificationService {
       throw error.response?.data || new Error('Network error');
     }
   }
-
+  async debugTokenStatus() {
+    try {
+      const storedToken = await AsyncStorage.getItem('fcmToken');
+      const storedUser = await AsyncStorage.getItem('user');
+      const authToken = await AsyncStorage.getItem('token');
+      
+      console.log('=== TOKEN DEBUG INFO ===');
+      console.log('FCM Token (stored):', storedToken ? storedToken.substring(0, 20) + '...' : 'null');
+      console.log('FCM Token (instance):', this.fcmToken ? this.fcmToken.substring(0, 20) + '...' : 'null');
+      console.log('User:', storedUser ? JSON.parse(storedUser).name : 'null');
+      console.log('Auth Token:', authToken ? 'present' : 'null');
+      console.log('Service Initialized:', this.isInitialized);
+      console.log('=======================');
+    } catch (error) {
+      console.error('Error in debug:', error);
+    }
+  }
   async markAsRead(notificationId) {
     try {
       const response = await notificationApi.put(
