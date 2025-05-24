@@ -182,12 +182,12 @@ const DoctorHomeScreen = () => {
           return isTodayAppointment && isActiveStatus;
         });
 
-        // Filter upcoming appointments
+        // Filter upcoming appointments - only confirmed/scheduled appointments
         const upcomingAppts = appointments.filter(app => {
           const isFutureAppointment = isFuture(app.appointment_date);
-          const isActiveStatus =
-            app.status !== 'canceled' && app.status !== 'completed';
-          return isFutureAppointment && isActiveStatus;
+          // Only include confirmed/scheduled appointments
+          const isConfirmed = app.status === 'confirmed' || app.status === 'scheduled';
+          return isFutureAppointment && isConfirmed;
         });
 
         // Filter pending appointments
@@ -206,7 +206,7 @@ const DoctorHomeScreen = () => {
         const pendingCount = pendingAppts.length;
 
         console.log(
-          `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} upcoming, ${pendingCount} pending`,
+          `Filtered appointments: ${todayAppts.length} today, ${upcomingAppts.length} confirmed upcoming, ${pendingCount} pending`,
         );
 
         setTodayAppointments(todayAppts);
