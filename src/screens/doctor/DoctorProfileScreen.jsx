@@ -8,8 +8,8 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   Image,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -18,12 +18,22 @@ import {useNavigation} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+const MenuLink = ({icon, title, onPress}) => (
+  <TouchableOpacity style={styles.menuLink} onPress={onPress}>
+    <View style={styles.menuIconContainer}>
+      <Icon name={icon} size={22} color="#0CB69B" />
+    </View>
+    <Text style={styles.menuLinkText}>{title}</Text>
+    <Icon name="chevron-forward-outline" size={20} color="#CCCCCC" />
+  </TouchableOpacity>
+);
+
 const DoctorProfileScreen = () => {
   const {user, logout, uploadProfilePicture} = useAuth();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-    const insets = useSafeAreaInsets();
   const [imageLoading, setImageLoading] = useState(false);
 
   // Doctor data state
@@ -169,112 +179,104 @@ const DoctorProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.header, {paddingTop: insets.top}]}>
-        <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => setIsEditing(!isEditing)}>
-          <Icon
-            name={isEditing ? 'close' : 'create-outline'}
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.profileSection}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0CB69B" />
+      
+      {/* Header Section */}
+      <View 
+        style={[
+          styles.headerSection, 
+          {paddingTop: insets.top + 10}
+        ]}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => setIsEditing(!isEditing)}
+            >
+              <Icon name={isEditing ? "close-outline" : "create-outline"} size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <Icon name="notifications-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Profile Info Section */}
+        <TouchableOpacity 
+          style={styles.profilePreview}
+          onPress={handleImagePicker}
+        >
           <View style={styles.avatarContainer}>
-            <View style={styles.profilePictureContainer}>
-              {user?.avatar_url ? (
-                <Image
-                  source={{ uri: user.avatar_url }}
-                  style={styles.profileImage}
-                />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{name.charAt(0)}</Text>
-                </View>
-              )}
-              
-              {/* Edit Icon Overlay */}
-              <TouchableOpacity
-                style={styles.editIconContainer}
-                onPress={handleImagePicker}
-                disabled={imageLoading}
-              >
-                {imageLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Icon name="camera" size={16} color="#fff" />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {isEditing && (
-              <TouchableOpacity 
-                style={styles.changePhotoButton}
-                onPress={handleImagePicker}
-                disabled={imageLoading}
-              >
-                <Text style={styles.changePhotoText}>
-                  {imageLoading ? 'Uploading...' : 'Change Photo'}
+            {user?.avatar_url ? (
+              <Image 
+                source={{uri: user.avatar_url}} 
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'D'}
                 </Text>
-              </TouchableOpacity>
+              </View>
+            )}
+            {imageLoading && (
+              <View style={styles.avatarOverlay}>
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              </View>
             )}
           </View>
-
-          <View style={styles.infoContainer}>
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Full Name</Text>
-              {isEditing ? (
+          <Text style={styles.profileName}>{"Dr. " + (name || 'Doctor')}</Text>
+          {/* <Text style={styles.profileEmail}>{email || 'doctor@example.com'}</Text> */}
+          {specialty && (
+            <Text style={styles.profileSpecialty}>{specialty}</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView style={styles.contentSection}>
+        {/* Doctor Info Section (Only when editing) */}
+        {isEditing && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Edit Profile</Text>
+            <View style={styles.formContainer}>
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Full Name</Text>
                 <TextInput
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter your full name"
                 />
-              ) : (
-                <Text style={styles.fieldValue}>{name}</Text>
-              )}
-            </View>
-
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Specialty</Text>
-              {isEditing ? (
+              </View>
+              
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Specialty</Text>
                 <TextInput
                   style={styles.input}
                   value={specialty}
                   onChangeText={setSpecialty}
                   placeholder="Enter your specialty"
                 />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {specialty || 'Not provided'}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Qualifications</Text>
-              {isEditing ? (
+              </View>
+              
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Qualifications</Text>
                 <TextInput
                   style={styles.input}
                   value={qualification}
                   onChangeText={setQualification}
                   placeholder="Enter your qualifications"
                 />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {qualification || 'Not provided'}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Consultation Fee (₹)</Text>
-              {isEditing ? (
+              </View>
+              
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Consultation Fee (₹)</Text>
                 <TextInput
                   style={styles.input}
                   value={consultationFee}
@@ -282,30 +284,20 @@ const DoctorProfileScreen = () => {
                   placeholder="Enter consultation fee"
                   keyboardType="numeric"
                 />
-              ) : (
-                <Text style={styles.fieldValue}>₹{consultationFee || '0'}</Text>
-              )}
-            </View>
-
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Available Hours</Text>
-              {isEditing ? (
+              </View>
+              
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Available Hours</Text>
                 <TextInput
                   style={styles.input}
                   value={availableHours}
                   onChangeText={setAvailableHours}
                   placeholder="e.g., 09:00 AM - 05:00 PM"
                 />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {availableHours || 'Not provided'}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.infoField}>
-              <Text style={styles.fieldLabel}>Bio</Text>
-              {isEditing ? (
+              </View>
+              
+              <View style={styles.inputField}>
+                <Text style={styles.inputLabel}>Bio</Text>
                 <TextInput
                   style={[styles.input, styles.bioInput]}
                   value={bio}
@@ -313,174 +305,243 @@ const DoctorProfileScreen = () => {
                   placeholder="Tell patients about yourself"
                   multiline
                 />
-              ) : (
-                <Text style={styles.fieldValue}>
-                  {bio || 'No bio provided'}
-                </Text>
-              )}
+              </View>
+              
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveProfile}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
-
-          {isEditing && (
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSaveProfile}
-              disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
-          )}
+        )}
+        
+        {/* Doctor Info Display (When not editing) */}
+        {!isEditing && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Professional Details</Text>
+            <View style={styles.infoDisplay}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Specialty:</Text>
+                <Text style={styles.infoValue}>{specialty || 'Not specified'}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Qualifications:</Text>
+                <Text style={styles.infoValue}>{qualification || 'Not specified'}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Consultation Fee:</Text>
+                <Text style={styles.infoValue}>₹{consultationFee || '0'}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Available Hours:</Text>
+                <Text style={styles.infoValue}>{availableHours || 'Not specified'}</Text>
+              </View>
+              
+              <View style={styles.infoRowBio}>
+                <Text style={styles.infoLabel}>About Me:</Text>
+                <Text style={styles.bioValue}>{bio || 'No bio provided.'}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+        
+        {/* Quick Links Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <View style={styles.menuContainer}>
+            <MenuLink 
+              icon="calendar-outline" 
+              title="Manage Schedule" 
+              onPress={() => navigation.navigate('DoctorSchedule')}
+            />
+            <MenuLink 
+              icon="people-outline" 
+              title="View Patients" 
+              onPress={() => {}}
+            />
+            <MenuLink 
+              icon="stats-chart-outline" 
+              title="Practice Analytics" 
+              onPress={() => {}}
+            />
+          </View>
         </View>
 
-        <View style={styles.menuSection}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('DoctorSchedule')}>
-            <Icon name="calendar-outline" size={24} color="#0CB69B" />
-            <Text style={styles.menuItemText}>Manage Schedule</Text>
-            <Icon name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="notifications-outline" size={24} color="#0CB69B" />
-            <Text style={styles.menuItemText}>Notifications</Text>
-            <Icon name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="shield-checkmark-outline" size={24} color="#0CB69B" />
-            <Text style={styles.menuItemText}>Privacy & Security</Text>
-            <Icon name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="help-circle-outline" size={24} color="#0CB69B" />
-            <Text style={styles.menuItemText}>Help & Support</Text>
-            <Icon name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Icon name="settings-outline" size={24} color="#0CB69B" />
-            <Text style={styles.menuItemText}>Settings</Text>
-            <Icon name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.menuItem, styles.logoutItem]}
-            onPress={handleLogout}>
-            <Icon name="log-out-outline" size={24} color="#FF6B6B" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+        {/* Settings Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          <View style={styles.menuContainer}>
+            <MenuLink 
+              icon="shield-checkmark-outline" 
+              title="Privacy & Security" 
+              onPress={() => {}}
+            />
+            <MenuLink 
+              icon="notifications-outline" 
+              title="Notification Preferences" 
+              onPress={() => {}}
+            />
+            <MenuLink 
+              icon="help-circle-outline" 
+              title="Help & Support" 
+              onPress={() => {}}
+            />
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Icon name="log-out-outline" size={22} color="#FF6B6B" />
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F5F7FA',
   },
-  header: {
+  headerSection: {
     backgroundColor: '#0CB69B',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: 20,
+    paddingBottom: 30,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 20,
+    color: 'white',
+    fontSize: 22,
     fontWeight: 'bold',
   },
-  editButton: {
-    padding: 8,
+  headerActions: {
+    flexDirection: 'row',
   },
-  content: {
-    flex: 1,
+  headerButton: {
+    marginLeft: 15,
+    padding: 5,
   },
-  profileSection: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    margin: 15,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  profilePreview: {
+    alignItems: 'center',
+    marginTop: 20,
   },
   avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  
-  // Add new styles for profile picture
-  profilePictureContainer: {
-    position: 'relative',
-    marginBottom: 10,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#e0e0e0',
-  },
-  editIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#0CB69B',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 10,
+    position: 'relative',
   },
-  
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0CB69B',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
+  avatarPlaceholder: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    color: '#fff',
-    fontSize: 40,
+    fontSize: 30,
     fontWeight: 'bold',
-  },
-  changePhotoButton: {
-    marginTop: 8,
-  },
-  changePhotoText: {
     color: '#0CB69B',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileName: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  profileEmail: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+  },
+  profileSpecialty: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  contentSection: {
+    flex: 1,
+    marginTop: -20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: '#F5F7FA',
+  },
+  sectionContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 15,
+    marginVertical: 10,
+    borderRadius: 15,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sectionTitle: {
     fontSize: 16,
-  },
-  
-  // ...rest of your existing styles...
-  infoContainer: {
-    marginBottom: 20,
-  },
-  infoField: {
+    fontWeight: 'bold',
+    color: '#333333',
     marginBottom: 15,
   },
-  fieldLabel: {
+  formContainer: {
+    marginBottom: 15,
+  },
+  inputField: {
+    marginBottom: 15,
+  },
+  inputLabel: {
     fontSize: 14,
     color: '#666',
     marginBottom: 5,
-  },
-  fieldValue: {
-    fontSize: 16,
-    color: '#333',
   },
   input: {
     backgroundColor: '#F5F5F5',
@@ -506,39 +567,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  menuSection: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    margin: 15,
-    marginTop: 0,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  infoDisplay: {
+    backgroundColor: '#FFFFFF',
   },
-  menuItem: {
+  infoRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  infoRowBio: {
+    paddingVertical: 12,
+  },
+  infoLabel: {
+    width: '40%',
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  bioValue: {
+    fontSize: 14,
+    color: '#333',
+    marginTop: 5,
+    lineHeight: 20,
+  },
+  menuContainer: {
+    backgroundColor: 'white',
+  },
+  menuLink: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#F0F0F0',
   },
-  menuItemText: {
+  menuIconContainer: {
+    width: 24,
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  menuLinkText: {
     flex: 1,
-    marginLeft: 15,
-    fontSize: 16,
-    color: '#333',
+    fontSize: 15,
+    color: '#333333',
   },
-  logoutItem: {
-    borderBottomWidth: 0,
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    marginTop: 5,
   },
   logoutText: {
-    flex: 1,
     marginLeft: 15,
-    fontSize: 16,
+    fontSize: 15,
     color: '#FF6B6B',
+    flex: 1,
   },
 });
 

@@ -14,6 +14,7 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {appointmentService} from '../../services/api';
+import {calendarService} from '../../services/calendarService';
 import {useAuth} from '../../context/AuthContext';
 import {useAppointments} from '../../context/AppointmentContext';
 import {
@@ -412,6 +413,16 @@ const BookAppointmentScreen = () => {
         // Add the appointment to context for real-time update
         addAppointment(newAppointment);
 
+        // Prepare calendar data
+        const calendarData = {
+          appointment_date: appointmentDate.toISOString(),
+          doctorName: doctor.name,
+          doctorSpecialty: doctor.specialty,
+          reason: reason,
+          consultationFee: doctor.consultation_fee,
+          doctorLocation: doctor.location || 'Healthcare Clinic',
+        };
+
         Alert.alert(
           'Appointment Requested',
           'Your appointment request has been sent to Dr. ' +
@@ -419,8 +430,25 @@ const BookAppointmentScreen = () => {
             ' and is pending approval. You will be notified once it is confirmed.',
           [
             {
-              text: 'View Appointments',
-              onPress: () => navigation.navigate('Appointments'),
+              text: 'Add to Calendar',
+              onPress: () => {
+                // Show calendar prompt after the success message
+                setTimeout(() => {
+                  calendarService.showAddToCalendarPrompt(
+                    calendarData,
+                    () => {
+                      console.log('Calendar event added successfully');
+                      // Navigate back after successful calendar addition
+                      navigation.goBack();
+                    },
+                    () => {
+                      console.log('Failed to add calendar event');
+                      // Navigate back even if calendar addition failed
+                      navigation.goBack();
+                    }
+                  );
+                }, 500);
+              },
             },
             {
               text: 'OK',

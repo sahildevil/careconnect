@@ -469,9 +469,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1,
     borderColor: '#0CB69B',
+    backgroundColor: '#0CB69B',
   },
   detailsText: {
-    color: '#0CB69B',
+    color: '#fff',
     fontSize: 14,
     fontWeight: '500',
   },
