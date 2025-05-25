@@ -63,7 +63,9 @@ CareConnect is a user-friendly mobile application built with React Native that b
 
 ![1](./src/assets/screenshots/appdemo1.png)
 ![2](./src/assets/screenshots/appdemo2.png)
-![1](./src/assets/screenshots/appdemo1.png)
+![3](./src/assets/screenshots/appdemo3.png)
+![4](./src/assets/screenshots/appdemo4.png)
+![5](./src/assets/screenshots/appdemo5.png)
 
 ## 🧩 Project Structure
 
