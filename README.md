@@ -14,7 +14,7 @@ This project has been developed as a submission for the Veersa Hackathon, addres
 
 **APK:** - https://drive.google.com/drive/folders/1IdTUlCvwAt6oYTvxSbs4811QhExKpdxK?usp=sharing
 
-**Website Repo** - https://github.com/anchal6904/careconnect
+**Web Version Repo** - https://github.com/anchal6904/careconnect
 
 ## ✨ Features
 
