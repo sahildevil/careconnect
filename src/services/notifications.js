@@ -40,7 +40,6 @@ class NotificationService {
     this.initializationPromise = null;
   }
 
-  // Initialize the service and request permissions
   async init() {
     // Prevent multiple simultaneous initialization attempts
     if (this.initializationPromise) {
@@ -55,7 +54,6 @@ class NotificationService {
     try {
       console.log('Starting notification service initialization...');
 
-      // Wait a bit to ensure the React Native bridge is ready
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Step 1: Request Android system notification permission (API 33+)
@@ -372,7 +370,7 @@ async registerDeviceToken() {
 
       console.log(`Registering device token for user ${user.id}:`, fcmToken.substring(0, 20) + '...');
 
-      // Register with our server
+      // Register with server
       const response = await notificationApi.post(
         '/notifications/register-device',
         {
@@ -408,7 +406,6 @@ async registerDeviceToken() {
     } catch (error) {
       console.error('Failed to register device token:', error);
 
-      // If it's an authentication error, don't throw - just log
       if (error.response && error.response.status === 401) {
         console.log(
           'Authentication required for device registration - will retry after login',
@@ -420,7 +417,6 @@ async registerDeviceToken() {
     }
   }
 
-  // Call this method after successful login
   async onUserAuthenticated() {
     try {
       if (this.isInitialized) {
@@ -443,7 +439,6 @@ async registerDeviceToken() {
     }
   }
 
-  // Call this method during logout
   async onUserLoggedOut() {
     try {
       console.log('User logged out, unregistering device...');
@@ -460,7 +455,6 @@ async registerDeviceToken() {
           console.log('Device token unregistered from server');
         } catch (error) {
           console.error('Error unregistering device token:', error);
-          // Don't fail logout if unregistration fails
         }
       }
 
@@ -582,7 +576,6 @@ async registerDeviceToken() {
     }
   }
 
-  // ... rest of your existing methods (getNotifications, markAsRead, etc.)
   async getNotifications() {
     try {
       console.log('Fetching notifications...');

@@ -5,7 +5,6 @@ import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 class CalendarService {
   async requestCalendarPermission() {
     try {
-      // First check if RNCalendarEvents has permission
       const authStatus = await RNCalendarEvents.checkPermissions();
       console.log('Current calendar auth status:', authStatus);
       
@@ -13,7 +12,6 @@ class CalendarService {
         return true;
       }
 
-      // Request permission using RNCalendarEvents first
       const requestStatus = await RNCalendarEvents.requestPermissions();
       console.log('Calendar permission request result:', requestStatus);
       
@@ -21,7 +19,6 @@ class CalendarService {
         return true;
       }
 
-      // If that fails, try with react-native-permissions as fallback
       const permission = Platform.select({
         ios: PERMISSIONS.IOS.CALENDARS,
         android: PERMISSIONS.ANDROID.WRITE_CALENDAR,
@@ -49,7 +46,7 @@ class CalendarService {
 
   async addAppointmentToCalendar(appointmentData) {
     try {
-      // Request permission first
+      
       const hasPermission = await this.requestCalendarPermission();
       
       if (!hasPermission) {
@@ -82,10 +79,10 @@ class CalendarService {
         notes: `Booked through CareConnect\nConsultation Fee: ₹${appointmentData.consultationFee || 'N/A'}`,
         alarms: [
           {
-            date: -60, // 1 hour before
+            date: -60, 
           },
           {
-            date: -15, // 15 minutes before
+            date: -15, 
           }
         ]
       };
@@ -107,7 +104,6 @@ class CalendarService {
     }
   }
 
-  // Update the showAddToCalendarPrompt method
   showAddToCalendarPrompt(appointmentData, onSuccess = () => {}, onError = () => {}) {
     Alert.alert(
       'Add to Calendar',
@@ -117,7 +113,7 @@ class CalendarService {
           text: 'Not Now',
           style: 'cancel',
           onPress: () => {
-            // Call onError callback when user cancels
+           
             onError({cancelled: true});
           }
         },

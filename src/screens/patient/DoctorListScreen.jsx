@@ -37,8 +37,8 @@ const DoctorListScreen = () => {
 
   // Location states
   const [userLocation, setUserLocation] = useState(null);
-  const [sortBy, setSortBy] = useState('distance'); // 'distance', 'rating', or 'fees'
-  const [sortOrder, setSortOrder] = useState('ascending'); // 'ascending' or 'descending'
+  const [sortBy, setSortBy] = useState('distance'); 
+  const [sortOrder, setSortOrder] = useState('ascending'); 
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [useRouteDistance, setUseRouteDistance] = useState(false);
 
@@ -63,7 +63,7 @@ const DoctorListScreen = () => {
   const isInitialRender = useRef(true);
 
   useEffect(() => {
-    // Get user location first (if possible)
+    // Get user location first 
     getUserLocation();
 
     // Check if specialty was passed as a param
@@ -74,15 +74,13 @@ const DoctorListScreen = () => {
     // Check if search query was passed as a param
     if (route.params?.searchQuery) {
       setSearchQuery(route.params.searchQuery);
-      filterDoctors(); // Ensure doctors are filtered based on the query
+      filterDoctors(); 
     }
 
-    // Initialize filter values based on data
     const initializeFilters = async () => {
       try {
         const response = await doctorService.getAllDoctors();
         if (response.success && response.doctors.length > 0) {
-          // Find maximum fee
           const highestFee = Math.max(
             ...response.doctors.map(
               doc => parseInt(doc.consultation_fee) || 500,
@@ -92,12 +90,11 @@ const DoctorListScreen = () => {
           setMaxFee(highestFee);
           setOriginalMaxFee(highestFee);
 
-          // Find highest experience
           const highestExperience = Math.max(
             ...response.doctors.map(doc => parseInt(doc.experience) || 5),
             10,
           );
-          // Keep min experience at 0, but we have the max for reference
+     
           console.log('Maximum values:', {highestFee, highestExperience});
         }
       } catch (error) {
@@ -109,7 +106,7 @@ const DoctorListScreen = () => {
   }, [route.params]);
 
   useEffect(() => {
-    // Skip the first render
+  
     if (isInitialRender.current) {
       isInitialRender.current = false;
       return;
@@ -127,7 +124,6 @@ const DoctorListScreen = () => {
     applyingFilters,
   ]);
 
-  // Replace the getUserLocation function:
   const getUserLocation = async () => {
     try {
       let location = null;
@@ -141,9 +137,8 @@ const DoctorListScreen = () => {
         console.log('Using stored user location:', location);
         setUserLocation(location);
       } else {
-        // Request location permission and get current location
         await requestLocationPermission();
-        return; // Let requestLocationPermission handle the rest
+        return; 
       }
 
       // If we have location, fetch doctors with it
@@ -174,7 +169,6 @@ const DoctorListScreen = () => {
 
         console.log(`Found ${visibleDoctors.length} visible doctors`);
 
-        // Calculate distances immediately with the provided location
         if (location && location.latitude && location.longitude) {
           await calculateDistancesWithLocation(visibleDoctors, location);
         } else {
@@ -192,7 +186,6 @@ const DoctorListScreen = () => {
     }
   };
 
-  // Add this new function that takes location as parameter:
   const calculateDistancesWithLocation = async (doctorsList, location) => {
     try {
       setDistanceLoading(true);
@@ -240,7 +233,6 @@ const DoctorListScreen = () => {
 
       console.log('Distance calculation completed');
 
-      // Set doctors with distances
       setDoctors(doctorsWithDistances);
       setFilteredDoctors(doctorsWithDistances);
     } catch (error) {
@@ -293,12 +285,11 @@ const DoctorListScreen = () => {
         console.log('Got current location:', location);
 
         setUserLocation(location);
-        // Use the new function that accepts location parameter
         fetchDoctorsWithLocation(location);
       },
       error => {
         console.error('Error getting current location:', error);
-        fetchDoctors(true); // Fallback to fetch without location
+        fetchDoctors(true); 
       },
       {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
     );
@@ -316,7 +307,6 @@ const DoctorListScreen = () => {
           doc => doc.is_visible !== false,
         );
 
-        // Debug: Check how many doctors have coordinates
         const doctorsWithCoords = visibleDoctors.filter(
           d => d.latitude && d.longitude,
         );
@@ -324,7 +314,6 @@ const DoctorListScreen = () => {
           `Found ${visibleDoctors.length} visible doctors, ${doctorsWithCoords.length} have coordinates`,
         );
 
-        // Log sample doctor data
         console.log(
           'Sample doctor data:',
           visibleDoctors.slice(0, 2).map(d => ({
@@ -335,13 +324,11 @@ const DoctorListScreen = () => {
           })),
         );
 
-        // If we don't have userLocation yet, try to get it
         if (!userLocation && !forceLocationCheck) {
           console.log(
             'No user location available, attempting to get location first...',
           );
 
-          // Set doctors without distances temporarily
           setDoctors(visibleDoctors);
           setFilteredDoctors(visibleDoctors);
 
@@ -415,7 +402,7 @@ const DoctorListScreen = () => {
       );
     });
   };
-  // Improve the location handling in your app:
+  
   const calculateDistancesForDoctors = async doctorsList => {
     try {
       setDistanceLoading(true);
@@ -430,7 +417,6 @@ const DoctorListScreen = () => {
       console.log(`Calculating distances for ${doctorsList.length} doctors`);
       console.log('User location:', userLocation);
 
-      // Add more detailed logging
       const doctorsWithDistances = doctorsList.map((doctor, index) => {
         console.log(`Processing doctor ${index + 1}:`, {
           name: doctor.name,
@@ -488,7 +474,6 @@ const DoctorListScreen = () => {
       // Set doctors with distances
       setDoctors(doctorsWithDistances);
 
-      // Don't sort here, let the filterAndSortDoctors function handle it
       setFilteredDoctors(doctorsWithDistances);
     } catch (error) {
       console.error('Error calculating distances:', error);
@@ -507,7 +492,7 @@ const DoctorListScreen = () => {
 
   const applyFilters = () => {
     setShowFilterModal(false);
-    setApplyingFilters(!applyingFilters); // Toggle to trigger the useEffect
+    setApplyingFilters(!applyingFilters); 
   };
 
   const removeFilter = filterType => {
@@ -526,7 +511,7 @@ const DoctorListScreen = () => {
         setSortOrder('ascending');
         break;
     }
-    setApplyingFilters(!applyingFilters); // Toggle to trigger the useEffect
+    setApplyingFilters(!applyingFilters); 
   };
 
   const filterAndSortDoctors = () => {
@@ -534,7 +519,6 @@ const DoctorListScreen = () => {
     console.log('Starting filter with', filtered.length, 'doctors');
     console.log('User location:', userLocation);
 
-    // Filter by specialty
     if (selectedSpecialty) {
       filtered = filtered.filter(doctor => {
         const docSpecialty = (doctor.specialty || '').trim().toLowerCase();
@@ -567,7 +551,6 @@ const DoctorListScreen = () => {
       });
     }
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(
@@ -577,13 +560,11 @@ const DoctorListScreen = () => {
       );
     }
 
-    // Apply filter for consultation fee
     filtered = filtered.filter(doctor => {
       const fee = parseInt(doctor.consultation_fee) || 500;
       return fee <= maxFee;
     });
 
-    // Apply filter for distance
     if (userLocation) {
       filtered = filtered.filter(doctor => {
         if (!doctor.distance && doctor.distance !== 0) return true; // Include if distance unknown
@@ -591,13 +572,11 @@ const DoctorListScreen = () => {
       });
     }
 
-    // Apply filter for experience
     filtered = filtered.filter(doctor => {
       const experience = parseInt(doctor.experience) || 0;
       return experience >= minExperience;
     });
 
-    // Apply sorting - REMOVE THE DUPLICATE SORTING LOGIC
     console.log('Sorting by:', sortBy, 'Order:', sortOrder);
     console.log(
       'Before sorting, sample distances:',
@@ -630,7 +609,7 @@ const DoctorListScreen = () => {
           return sortOrder === 'ascending' ? expA - expB : expB - expA;
         });
         break;
-      default: // rating
+      default: 
         filtered.sort((a, b) => {
           const ratingA = parseFloat(a.rating) || 0;
           const ratingB = parseFloat(b.rating) || 0;
@@ -653,16 +632,13 @@ const DoctorListScreen = () => {
 
   const toggleSortBy = newSortBy => {
     if (sortBy === newSortBy) {
-      // Toggle order if same sort type
       setSortOrder(sortOrder === 'ascending' ? 'descending' : 'ascending');
     } else {
-      // Set new sort type and default to ascending
       setSortBy(newSortBy);
       setSortOrder('ascending');
     }
   };
 
-  // List of specialties - make sure these match exactly with database values
   const specialties = [
     'Cardiology',
     'Dermatology',
@@ -673,7 +649,6 @@ const DoctorListScreen = () => {
     'General Medicine',
   ];
 
-  // 1. Update the renderDistanceText function to always show distance when available
   const renderDistanceText = item => {
     console.log(
       'Rendering distance for:',
@@ -708,17 +683,14 @@ const DoctorListScreen = () => {
     );
   };
 
-  // Filter Modal Component
-  // Updated Filter Modal UI without changing logic
+
 const FilterModal = () => {
-  // Create temporary state values for the sliders
   const [tempMaxFee, setTempMaxFee] = useState(maxFee);
   const [tempMaxDistance, setTempMaxDistance] = useState(maxDistance);
   const [tempMinExperience, setTempMinExperience] = useState(minExperience);
   const [tempSortBy, setTempSortBy] = useState(sortBy);
   const [tempSortOrder, setTempSortOrder] = useState(sortOrder);
 
-  // Reset temporary values when modal opens
   useEffect(() => {
     if (showFilterModal) {
       setTempMaxFee(maxFee);
@@ -729,7 +701,6 @@ const FilterModal = () => {
     }
   }, [showFilterModal]);
 
-  // Temporary toggle sort function
   const tempToggleSortBy = newSortBy => {
     if (tempSortBy === newSortBy) {
       setTempSortOrder(
@@ -741,7 +712,6 @@ const FilterModal = () => {
     }
   };
 
-  // Apply all changes at once
   const handleApplyFilters = () => {
     setMaxFee(tempMaxFee);
     setMaxDistance(tempMaxDistance);
@@ -749,11 +719,9 @@ const FilterModal = () => {
     setSortBy(tempSortBy);
     setSortOrder(tempSortOrder);
     setShowFilterModal(false);
-    // Trigger filter application with a slight delay
     setTimeout(() => setApplyingFilters(!applyingFilters), 50);
   };
 
-  // Handle the temporary remove filter function
   const tempRemoveFilter = filterType => {
     switch (filterType) {
       case 'fees':
@@ -1079,7 +1047,6 @@ const FilterModal = () => {
   );
 };
 
-  // Add this function to check for active filters
   const hasActiveFilters = () => {
     return (
       maxFee < originalMaxFee ||
@@ -1326,9 +1293,7 @@ const FilterModal = () => {
   );
 };
 
-// Add these styles to your component
 const modernStyles = StyleSheet.create({
-  // Modal container and overlay
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1338,7 +1303,6 @@ const modernStyles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    //paddingBottom: Platform.OS === 'ios' ? 30 : 20,
     maxHeight: '70%',
   },
   modalHeader: {
@@ -1375,7 +1339,6 @@ const modernStyles = StyleSheet.create({
   paddingBottom: 0, 
   borderTopWidth: 1,
   borderTopColor: '#f0f0f0',
-  //marginBottom: 16, 
 },
   
   // Filter sections

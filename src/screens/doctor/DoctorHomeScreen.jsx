@@ -10,7 +10,7 @@ import {
   FlatList,
   ActivityIndicator,
   AppState,
-  Alert, // Add this import
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -36,7 +36,6 @@ const DoctorHomeScreen = () => {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    // Initial fetch
     fetchAppointments();
 
     // Add a refresh listener when the screen is focused
@@ -62,7 +61,7 @@ const DoctorHomeScreen = () => {
       unsubscribe();
       subscription?.remove();
     };
-  }, [user]); // Add user as dependency
+  }, [user]); 
 
   // Helper function to get date in YYYY-MM-DD format
   const getDateString = date => {
@@ -137,12 +136,10 @@ const DoctorHomeScreen = () => {
         const appointments = response.appointments;
         console.log(`Received ${appointments.length} appointments from server`);
 
-        // Log server debug info if available
         if (response.debug) {
           console.log('Server debug info:', response.debug);
         }
 
-        // If we got 0 appointments, let's check if the doctor actually exists in database
         if (appointments.length === 0 && retryCount === 0) {
           console.log('Got 0 appointments, checking doctor profile...');
 
@@ -164,7 +161,6 @@ const DoctorHomeScreen = () => {
           return;
         }
 
-        // Process appointments as before...
         const todayString = getDateString(new Date());
         console.log("Today's date string:", todayString);
 
@@ -254,25 +250,21 @@ const DoctorHomeScreen = () => {
     try {
       const appointmentDate = new Date(item.appointment_date);
 
-      // Format time
       const appointmentTime = appointmentDate.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
       });
 
-      // Format date
       const formattedDate = appointmentDate.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
       });
 
-      // Get patient name with fallback
       const patientName = item.patients?.name || item.patient?.name || 'Patient';
       const patientInitial = patientName.charAt(0).toUpperCase();
 
-      // Determine status color
       const getStatusColor = status => {
         switch (status?.toLowerCase()) {
           case 'confirmed':
@@ -359,17 +351,6 @@ const DoctorHomeScreen = () => {
               <Icon name="eye-outline" size={16} color="#FF9F40" />
               <Text style={styles.viewButtonText}>View Details</Text>
             </TouchableOpacity>
-
-            {/* {item.status === 'confirmed' && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.startButton]}
-                onPress={() =>
-                  navigation.navigate('VideoCall', {appointment: item})
-                }>
-                <Icon name="videocam" size={16} color="#FFF" />
-                <Text style={styles.startButtonText}>Start</Text>
-              </TouchableOpacity>
-            )} */}
           </View>
         </TouchableOpacity>
       );

@@ -13,13 +13,9 @@ const App = () => {
           'App started, waiting before initializing notifications...',
         );
 
-        // Wait for the app to be fully loaded before initializing notifications
         setTimeout(async () => {
           try {
             console.log('Initializing notification service...');
-
-            // Only initialize basic FCM setup, not full permissions
-            // Full permission request will happen when user interacts with the app
             await notificationService.registerMessageHandlers();
           } catch (error) {
             console.error(
@@ -27,7 +23,7 @@ const App = () => {
               error,
             );
           }
-        }, 3000); // Wait 3 seconds after app start
+        }, 3000); 
       } catch (error) {
         console.error('Failed to initialize app:', error);
       }

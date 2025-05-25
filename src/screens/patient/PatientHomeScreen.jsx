@@ -14,7 +14,7 @@ import {
   Alert,
   PermissionsAndroid,
   RefreshControl,
-  Image, // Add Image import
+  Image, 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
@@ -29,7 +29,6 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAppointments} from '../../context/AppointmentContext';
 import {notificationService} from '../../services/notifications';
 
-// Add this component near the top of your file, after the imports
 const NotificationPromptBanner = ({onDismiss, onEnable}) => (
   <View style={styles.notificationBanner}>
     <View style={styles.bannerContent}>
@@ -50,7 +49,6 @@ const NotificationPromptBanner = ({onDismiss, onEnable}) => (
   </View>
 );
 
-// Updated specialties array with all categories
 const specialties = [
   {id: 1, name: 'Cardiology', icon: 'heart'},
   {id: 2, name: 'Dermatology', icon: 'body'},
@@ -65,7 +63,6 @@ const specialties = [
 ];
 
 const PatientHomeScreen = () => {
-  // Get appointments from context instead of local state
   const {
     appointments,
     loading: appointmentsLoading,
@@ -81,20 +78,17 @@ const PatientHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
 
-  // Initial fetch
   useEffect(() => {
     fetchData();
     setTimeout(() => {
       requestLocationPermission();
     }, 1000);
 
-    // Check notification permissions after a delay
     setTimeout(() => {
       checkNotificationPermissions();
     }, 3000);
   }, []);
 
-  // Process appointments from context whenever they change
   useEffect(() => {
     if (appointments.length > 0) {
       const futureAppointments = appointments
@@ -154,7 +148,6 @@ const PatientHomeScreen = () => {
       // Refresh appointments from context
       await fetchAppointments();
 
-      // Fetch popular doctors
       const doctorsResponse = await doctorService.getAllDoctors();
       if (doctorsResponse.success) {
         setPopularDoctors(doctorsResponse.doctors.slice(0, 5));
@@ -167,7 +160,6 @@ const PatientHomeScreen = () => {
     }
   };
 
-  // Add a listener to refresh appointments when the screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log('PatientHomeScreen focused, refreshing appointments...');
@@ -177,9 +169,7 @@ const PatientHomeScreen = () => {
     return unsubscribe;
   }, [navigation, fetchAppointments]);
 
-  // Request location permission using the native dialog - KEEP ONLY THIS ONE
   const requestLocationPermission = async () => {
-    // Check if user is defined and has an ID
     if (!user || !user.id) {
       console.error('User not authenticated, cannot update location');
       Alert.alert(
@@ -284,16 +274,13 @@ const PatientHomeScreen = () => {
     );
   };
 
-  // Update the checkNotificationPermissions function
   const checkNotificationPermissions = async () => {
     try {
-      // Add a delay to ensure the screen is fully rendered
       setTimeout(async () => {
         try {
           const permissions = await notificationService.hasPermissions();
 
           if (!permissions.overall) {
-            // Show banner instead of immediate alert
             setShowNotificationBanner(true);
           } else {
             console.log('Notification permissions already granted');
@@ -316,7 +303,6 @@ const PatientHomeScreen = () => {
     try {
       setShowNotificationBanner(false);
 
-      // Add a small delay before requesting permissions
       setTimeout(async () => {
         try {
           const granted = await notificationService.init();
@@ -344,7 +330,6 @@ const PatientHomeScreen = () => {
   };
 
   const renderAppointmentItem = ({item}) => {
-    // Get doctor data consistently
     const doctorData = item.doctor || item.doctors || {};
 
     const appointmentDate = new Date(item.appointment_date);
@@ -360,21 +345,20 @@ const PatientHomeScreen = () => {
       hour12: true,
     });
 
-    // Get status color
     const getStatusColor = status => {
       switch (status) {
         case 'confirmed':
         case 'scheduled':
-          return '#0CB69B'; // green
+          return '#0CB69B'; 
         case 'pending':
-          return '#FFC107'; // yellow/amber
+          return '#FFC107'; 
         case 'completed':
-          return '#4CAF50'; // green
+          return '#4CAF50'; 
         case 'cancelled':
         case 'canceled':
-          return '#F44336'; // red
+          return '#F44336'; 
         default:
-          return '#888888'; // gray
+          return '#888888'; 
       }
     };
 
@@ -394,7 +378,7 @@ const PatientHomeScreen = () => {
           <View
             style={[
               styles.statusBadge,
-              {backgroundColor: getStatusColor(item.status) + '20'}, // 20% opacity
+              {backgroundColor: getStatusColor(item.status) + '20'}, 
             ]}>
             <Text
               style={[styles.statusText, {color: getStatusColor(item.status)}]}>
@@ -444,42 +428,6 @@ const PatientHomeScreen = () => {
     );
   };
 
-  const renderDoctorItem = ({item}) => (
-    <TouchableOpacity
-      style={styles.doctorCard}
-      onPress={() => navigation.navigate('DoctorDetail', {doctorId: item.id})}>
-      <View style={styles.popularDoctorInfo}>
-        <View>
-          <View style={styles.doctorStatus}>
-            <View style={styles.statusDot}></View>
-            <Text style={styles.doctorName}>Dr. {item.name}</Text>
-          </View>
-          <Text style={styles.doctorSpecialty}>{item.specialty}</Text>
-        </View>
-        <View style={styles.ratingContainer}>
-          <Icon name="star" size={14} color="#FFD700" />
-          <Text style={styles.rating}>{item.rating || '4.5'}</Text>
-        </View>
-      </View>
-      <View style={styles.appointmentDetails}>
-        <TouchableOpacity
-          style={styles.appointmentButton}
-          onPress={() =>
-            navigation.navigate('BookAppointment', {doctor: item})
-          }>
-          <Text style={styles.appointmentButtonText}>Appointment</Text>
-        </TouchableOpacity>
-        <View style={styles.timeContainer}>
-          <Icon name="time-outline" size={16} color="#888" />
-          <Text style={styles.timeText}>
-            {item.available_hours || '09:00 AM - 05:00 PM'}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  // Function to get different colors for specialty icons
   const getSpecialtyColor = specialty => {
     const colorMap = {
       Cardiology: '#FF6B6B',
@@ -578,10 +526,10 @@ const PatientHomeScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#0CB69B']} // Android
-              tintColor="#0CB69B" // iOS
-              title="Pull to refresh" // iOS
-              titleColor="#0CB69B" // iOS
+              colors={['#0CB69B']} 
+              tintColor="#0CB69B" 
+              title="Pull to refresh" 
+              titleColor="#0CB69B" 
             />
           }>
           {/* Today Appointments */}
@@ -812,7 +760,6 @@ const styles = StyleSheet.create({
     elevation: 0,
     borderWidth: 2,
     borderColor: '#c3e8e4',
-    //borderColor: '#afb3b2',
   },
   appointmentType: {
     flexDirection: 'row',
@@ -1124,17 +1071,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0CB69B',
   },
-  // doctorOnlineIndicator: {
-  //   position: 'absolute',
-  //   bottom: 0,
-  //   right: 0,
-  //   width: 12,
-  //   height: 12,
-  //   borderRadius: 6,
-  //   backgroundColor: '#4CAF50',
-  //   borderWidth: 2,
-  //   borderColor: '#fff',
-  // },
   doctorCardInfo: {
     flex: 1,
   },

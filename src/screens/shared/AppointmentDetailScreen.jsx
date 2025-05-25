@@ -27,7 +27,6 @@ const AppointmentDetailScreen = () => {
   const route = useRoute();
 
   useEffect(() => {
-    // Check if we have appointment object or just the ID
     if (route.params.appointment) {
       setAppointment(route.params.appointment);
       setLoading(false);
@@ -38,7 +37,6 @@ const AppointmentDetailScreen = () => {
       Alert.alert('Error', 'No appointment information provided');
     }
 
-    // If coming from reminder, show directions option
     if (route.params.fromReminder && route.params.appointment) {
       setTimeout(() => {
         Alert.alert(
@@ -53,8 +51,6 @@ const AppointmentDetailScreen = () => {
     }
   }, [route.params]);
 
-  // Update the fetchAppointmentDetails function
-
   const fetchAppointmentDetails = async appointmentId => {
     try {
       setLoading(true);
@@ -63,7 +59,6 @@ const AppointmentDetailScreen = () => {
         appointmentId,
       );
 
-      // Validate appointmentId
       if (
         !appointmentId ||
         appointmentId === 'undefined' ||
@@ -145,10 +140,8 @@ const AppointmentDetailScreen = () => {
     try {
       setDirectionsLoading(true);
 
-      // Use consistent doctor data access
       const doctorData = getDoctorData();
 
-      // Check if doctor has location data
       if (!doctorData.latitude || !doctorData.longitude) {
         Alert.alert(
           'Location Unavailable',
@@ -171,13 +164,11 @@ const AppointmentDetailScreen = () => {
         url = `https://maps.google.com/maps?daddr=${destination}&dname=${destinationName}&dirflg=d`;
       }
 
-      // Check if the URL can be opened
       const canOpen = await Linking.canOpenURL(url);
 
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        // Fallback to web URL if app link doesn't work
         const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${destinationName}&travelmode=driving`;
         await Linking.openURL(webUrl);
       }
@@ -191,8 +182,6 @@ const AppointmentDetailScreen = () => {
       setDirectionsLoading(false);
     }
   };
-
-  // Function to determine status color:
 
   const getStatusColor = status => {
     switch (status) {
@@ -263,10 +252,9 @@ const AppointmentDetailScreen = () => {
   const isDoctor = userType === 'doctor';
   const isScheduled = appointment.status === 'scheduled';
   const canStartCall =
-    isScheduled && Math.abs(new Date() - appointmentDate) / (1000 * 60) <= 30; // within 30 minutes
+    isScheduled && Math.abs(new Date() - appointmentDate) / (1000 * 60) <= 30; 
 
   const renderDirectionsButton = () => {
-    // Only show for patients and confirmed appointments
     if (userType === 'doctor' || appointment.status !== 'confirmed') {
       return null;
     }
@@ -293,9 +281,7 @@ const AppointmentDetailScreen = () => {
     );
   };
 
-  // Modify the part where you access doctor information
   const renderLocationInfo = () => {
-    // Get doctor data properly from either structure
     const doctorData = appointment.doctor || appointment.doctors || {};
 
     if (!isDoctor) {
@@ -320,7 +306,6 @@ const AppointmentDetailScreen = () => {
           </>
         );
       } else if (appointment.status === 'pending') {
-        // Add message for pending appointments
         return (
           <>
             <View style={styles.divider} />
@@ -424,11 +409,6 @@ const AppointmentDetailScreen = () => {
                     {getDoctorData().specialty || 'Specialist'}
                   </Text>
                 )}
-                {/* <Text style={styles.emailText}>
-                  {isDoctor
-                    ? appointment.patient?.email || 'patient@example.com'
-                    : getDoctorData().email || 'doctor@example.com'}
-                </Text> */}
               </View>
             </View>
           </View>
@@ -752,7 +732,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3897F0', // blue color for directions (different from video call)
+    backgroundColor: '#3897F0', 
     borderRadius: 8,
     padding: 12,
     marginVertical: 10,

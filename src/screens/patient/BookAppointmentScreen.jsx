@@ -26,44 +26,6 @@ import {
   HeaderComponent,
 } from '../../components';
 
-// Helper function to convert local time to UTC
-const convertLocalTimeToUTC = (date, timeStr) => {
-  const [hours, minutes] = timeStr.split(':');
-
-  // Create a date object with the local date and time
-  const localDate = new Date(date);
-  localDate.setHours(parseInt(hours, parseInt(minutes), 0, 0));
-
-  // Get UTC components
-  const utcHours = localDate.getUTCHours();
-  const utcMinutes = localDate.getUTCMinutes();
-
-  // Return formatted UTC time
-  return `${utcHours}:${utcMinutes === 0 ? '00' : utcMinutes}`;
-};
-
-// Helper function to convert UTC time to local
-const convertUTCToLocalTime = (date, utcTimeStr) => {
-  const [hours, minutes] = utcTimeStr.split(':');
-
-  // Create a date object with the given date and UTC time
-  const utcDate = new Date(date);
-  utcDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-  // Get local components
-  const localHours = utcDate.getHours();
-  const localMinutes = utcDate.getMinutes();
-
-  // Format hours for 12-hour clock
-  let hour12 = localHours % 12;
-  if (hour12 === 0) hour12 = 12;
-  const period = localHours >= 12 ? 'PM' : 'AM';
-
-  // Return formatted local time
-  return `${hour12}:${localMinutes === 0 ? '00' : localMinutes} ${period}`;
-};
-
-// Helper function to generate time slots
 const generateTimeSlots = (startHour = 9, endHour = 17) => {
   const slots = [];
   for (let hour = startHour; hour < endHour; hour++) {
@@ -122,7 +84,6 @@ const BookAppointmentScreen = () => {
 
     console.log('Doctor available days:', availableDayNames);
 
-    // Map day names to JavaScript day numbers (0 = Sunday, 1 = Monday, etc.)
     const dayNameToNumber = {
       Sunday: 0,
       Monday: 1,
@@ -133,7 +94,6 @@ const BookAppointmentScreen = () => {
       Saturday: 6,
     };
 
-    // Convert available day names to day numbers
     const availableDayNumbers = availableDayNames.map(
       dayName => dayNameToNumber[dayName],
     );
@@ -169,7 +129,6 @@ const BookAppointmentScreen = () => {
             const startTime = hoursParts[0].trim();
             const endTime = hoursParts[1].trim();
 
-            // Parse start time (e.g. "9:00 AM" or "2:00 PM")
             if (startTime.includes('AM')) {
               startHour = parseInt(startTime.split(':')[0]);
               if (startHour === 12) startHour = 0; // 12 AM = 0 hour
@@ -208,7 +167,6 @@ const BookAppointmentScreen = () => {
   useEffect(() => {
     // Start refresh interval when a date is selected
     if (selectedDate && doctor?.id) {
-      // Initial fetch
       fetchBookedSlots(selectedDate);
 
       // Set up interval to check for updates every 10 seconds
@@ -241,8 +199,6 @@ const BookAppointmentScreen = () => {
       };
     }
   }, [selectedDate, doctor?.id]);
-
-  // Update the fetchBookedSlots function
 
   const fetchBookedSlots = async (date, silent = false) => {
     try {
@@ -343,7 +299,6 @@ const BookAppointmentScreen = () => {
       }
     } catch (error) {
       console.error('Error fetching booked slots:', error);
-      // Don't clear booked slots on error to prevent showing false availability
     } finally {
       if (!silent) {
         setLoadingSlots(false);
@@ -381,7 +336,6 @@ const BookAppointmentScreen = () => {
       // Set the hours and minutes in the local date object
       appointmentDate.setHours(hour, parseInt(minutes), 0, 0);
 
-      // Log appointment date in local timezone for debugging
       console.log('Local appointment date:', appointmentDate.toString());
       console.log('UTC appointment date:', appointmentDate.toISOString());
 
@@ -409,7 +363,7 @@ const BookAppointmentScreen = () => {
           ...response.appointment,
           doctor: doctor, // Include doctor information for display
           status: 'pending',
-          created_at: new Date().toISOString(), // Add creation timestamp if not provided by API
+          created_at: new Date().toISOString(), 
         };
 
         // Add the appointment to context for real-time update
@@ -727,7 +681,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F8F6',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden', // Add this to ensure image stays within borders
+    overflow: 'hidden', 
   },
   avatarText: {
     fontSize: 24,

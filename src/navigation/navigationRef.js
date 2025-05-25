@@ -1,5 +1,3 @@
-// Create this new file for navigation reference
-
 import {createNavigationContainerRef} from '@react-navigation/native';
 
 export const navigationRef = createNavigationContainerRef();

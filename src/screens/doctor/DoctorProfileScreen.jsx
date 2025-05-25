@@ -36,7 +36,6 @@ const DoctorProfileScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
 
-  // Doctor data state
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone_number || '');
@@ -50,7 +49,6 @@ const DoctorProfileScreen = () => {
     user?.available_hours || '',
   );
 
-  // Get doctor data on component mount
   useEffect(() => {
     if (user) {
       fetchDoctorDetails();
@@ -124,7 +122,6 @@ const DoctorProfileScreen = () => {
     ]);
   };
 
-  // Add image picker function
   const handleImagePicker = () => {
     Alert.alert(
       'Select Profile Picture',
@@ -164,7 +161,6 @@ const DoctorProfileScreen = () => {
           
           if (result.success) {
             Alert.alert('Success', 'Profile picture updated successfully!');
-            // Refresh doctor details to get updated avatar
             fetchDoctorDetails();
           } else {
             Alert.alert('Error', result.message || 'Failed to update profile picture');
@@ -232,7 +228,6 @@ const DoctorProfileScreen = () => {
             )}
           </View>
           <Text style={styles.profileName}>{"Dr. " + (name || 'Doctor')}</Text>
-          {/* <Text style={styles.profileEmail}>{email || 'doctor@example.com'}</Text> */}
           {specialty && (
             <Text style={styles.profileSpecialty}>{specialty}</Text>
           )}
@@ -240,7 +235,7 @@ const DoctorProfileScreen = () => {
       </View>
       
       <ScrollView style={styles.contentSection}>
-        {/* Doctor Info Section (Only when editing) */}
+        {/* Doctor Info Section*/}
         {isEditing && (
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Edit Profile</Text>

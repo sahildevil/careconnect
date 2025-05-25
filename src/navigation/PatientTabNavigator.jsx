@@ -2,8 +2,6 @@ import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import NotificationBadge from '../components/NotificationBadge';
-
-// Import Patient Screens
 import PatientHomeScreen from '../screens/patient/PatientHomeScreen';
 import PatientAppointmentsScreen from '../screens/patient/PatientAppointmentsScreen';
 import PatientProfileScreen from '../screens/patient/PatientProfileScreen';

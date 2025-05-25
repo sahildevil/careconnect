@@ -15,7 +15,6 @@ const LandingScreen = () => {
   const navigation = useNavigation();
 
   const handleGetStarted = () => {
-    // Navigate to the next screen (e.g., UserTypeSelection)
     navigation.navigate('UserTypeSelection');
   };
 
@@ -26,7 +25,7 @@ const LandingScreen = () => {
       <View style={styles.contentContainer}>
         <View style={styles.imageContainer}>
           <Image
-            source={require('../assets/images/doc3.png')} // Replace with your image path
+            source={require('../assets/images/doctor_potrait2.png')} 
             style={styles.doctorImage}
             resizeMode="cover"
           />
@@ -56,7 +55,7 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#00B489', // The green background color
+    backgroundColor: '#00B489', 
   },
   contentContainer: {
     flex: 1,
@@ -69,7 +68,7 @@ const styles = StyleSheet.create({
     width: width ,
     height: width,
     borderRadius: width * 0.4,
-    backgroundColor: '#ffffff20', // Slightly white transparent circle
+    backgroundColor: '#ffffff20', 
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -92,7 +91,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     textAlign: 'center',
-    color: '#ffffffdd', // Slightly transparent white
+    color: '#ffffffdd', 
     lineHeight: 22,
   },
   button: {
@@ -103,12 +102,10 @@ const styles = StyleSheet.create({
     width: width * 0.85,
     alignItems: 'center',
     marginBottom: 16,
-    // Shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
-    // Shadow for Android
     elevation: 3,
   },
   buttonText: {
