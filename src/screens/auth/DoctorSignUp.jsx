@@ -17,7 +17,6 @@ import {
   CustomTextField,
   CustomButton,
   CustomPicker,
-  HeaderComponent,
   BackButton,
 } from '../../components';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -86,7 +85,7 @@ const DoctorSignUp = () => {
       if (response.success) {
         Alert.alert(
           'Registration Successful',
-            'Your doctor account has been created successfully!', 
+          'Your doctor account has been created successfully!',
           [
             {
               text: 'OK',
@@ -127,10 +126,12 @@ const DoctorSignUp = () => {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <BackButton />
 
-          <HeaderComponent
-            title="Doctor Registration"
-            subtitle="Join our healthcare network"
-          />
+          {/* Direct header code instead of HeaderComponent */}
+          <View style={styles.headerContainer}>
+            <Text style={styles.logoText}>CareConnect</Text>
+            <Text style={styles.headerText}>Doctor Registration</Text>
+            {/* <Text style={styles.subHeaderText}>Join our healthcare network</Text> */}
+          </View>
 
           <View style={styles.formContainer}>
             <CustomTextField
@@ -168,7 +169,6 @@ const DoctorSignUp = () => {
               placeholder="Qualifications"
               value={qualification}
               onChangeText={setQualification}
-              multiline
               required
             />
 
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   logoText: {
     fontSize: 28,
@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerText: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
   },
   subHeaderText: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#666',
   },
   formContainer: {
