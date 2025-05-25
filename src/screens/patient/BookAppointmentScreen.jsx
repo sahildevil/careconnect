@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   AppState,
+  Image,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -17,6 +18,7 @@ import {appointmentService} from '../../services/api';
 import {calendarService} from '../../services/calendarService';
 import {useAuth} from '../../context/AuthContext';
 import {useAppointments} from '../../context/AppointmentContext';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   BackButton,
   CustomButton,
@@ -89,12 +91,12 @@ const BookAppointmentScreen = () => {
   const [timeSlots, setTimeSlots] = useState([]);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const {user} = useAuth();
   const {doctor} = route.params;
-  const { addAppointment } = useAppointments();
+  const {addAppointment} = useAppointments();
 
   // Add a new ref to track the refresh interval
   const refreshIntervalRef = useRef(null);
@@ -386,7 +388,7 @@ const BookAppointmentScreen = () => {
       const appointmentData = {
         patient_id: user.id,
         doctor_id: doctor.id,
-        appointment_date: appointmentDate.toISOString(), 
+        appointment_date: appointmentDate.toISOString(),
         reason: reason,
         appointment_type: 'consultation',
       };
@@ -409,7 +411,7 @@ const BookAppointmentScreen = () => {
           status: 'pending',
           created_at: new Date().toISOString(), // Add creation timestamp if not provided by API
         };
-        
+
         // Add the appointment to context for real-time update
         addAppointment(newAppointment);
 
@@ -445,7 +447,7 @@ const BookAppointmentScreen = () => {
                       console.log('Failed to add calendar event');
                       // Navigate back even if calendar addition failed
                       navigation.goBack();
-                    }
+                    },
                   );
                 }, 500);
               },
@@ -489,7 +491,7 @@ const BookAppointmentScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <BackButton color="#fff" />
         <Text style={styles.headerTitle}>Book Appointment</Text>
         <View style={{width: 40}} />
@@ -498,9 +500,19 @@ const BookAppointmentScreen = () => {
       <ScrollView style={styles.content}>
         <View style={styles.doctorInfoCard}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{doctor.name.charAt(0)}</Text>
-            </View>
+            {doctor.avatar_url ? (
+              <Image
+                source={{uri: doctor.avatar_url}}
+                style={styles.avatar}
+                defaultSource={require('../../assets/images/Doctor_icon.png')}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {doctor.name ? doctor.name.charAt(0).toUpperCase() : 'D'}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.doctorDetails}>
@@ -715,6 +727,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F8F6',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden', // Add this to ensure image stays within borders
   },
   avatarText: {
     fontSize: 24,

@@ -337,7 +337,7 @@ const PatientAppointmentsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
   },
   header: {
     backgroundColor: '#0CB69B',
@@ -390,15 +390,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   appointmentCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderRadius: 15,
     marginBottom: 15,
     padding: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   appointmentHeader: {
     flexDirection: 'row',
@@ -526,16 +523,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  dateSeparatorLine: {
-    height: 1,
-    width: '100%',
-    backgroundColor: '#ddd',
-  },
+  // dateSeparatorLine: {
+  //   height: 1,
+  //   width: '100%',
+  //   backgroundColor: '#ddd',
+  // },
   dateSeparatorText: {
     fontSize: 14,
-    color: '#333',
+    color: '#000',
     fontWeight: '500',
-    marginVertical: 5,
+    marginVertical: 0,
   },
 });
 

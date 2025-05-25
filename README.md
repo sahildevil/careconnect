@@ -1,97 +1,103 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# CareConnect
 
-# Getting Started
+![CareConnect](./src/assets/screenshots/cover2.png)
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+CareConnect is a user-friendly mobile application built with React Native that bridges the gap between patients and healthcare providers. The platform enables patients to discover doctors, schedule appointments, and manage their healthcare journey, while providing doctors with tools to efficiently manage their practice and patient interactions.
 
-## Step 1: Start Metro
+**Server Repo** - https://github.com/sahildevil/careconnect_server 
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+**Figma:** -  
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+**APK:** - 
 
-```sh
-# Using npm
-npm start
+## ✨ Features
 
-# OR using Yarn
-yarn start
+### 🧑‍⚕️ For Patients
+
+- **Doctor Discovery**
+  - Search for doctors by name or specialty
+  - Filter by location, fees, distance, and experience
+  - Sort doctors by distance, fees, or experience
+
+- **Appointment Booking**
+  - Schedule appointments with preferred doctors
+  - Select convenient time slots
+  - No Clash between multiple slot booking
+  - Track appointment status and history
+
+- **Healthcare Management**
+  - Receive Push notifications for appointment status update
+  - Reminders for upcoming appoinments
+
+### 👨‍⚕️ For Doctors
+
+- **Professional Profile Management**
+  - Set consultation fees and availability hours
+
+- **Appointment Dashboard**
+  - View daily schedule and upcoming appointments
+  - Track pending appointment requests
+  - Manage patient information and visit history
+  - Accept or decline appointment requests
+  - Complete appointments and maintain records
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React Native** - Cross-platform mobile framework
+- **React Navigation** - Navigation and routing
+- **React Context API** - State management
+- **Axios** - API requests handling
+- **React Native Geolocation** - Location services
+
+### Backend
+- **Node.js & Express** - Server infrastructure
+- **Supabase** - PostgreSQL database
+- **Push Notification** - Firebase Cloud Messaging
+- **REST API** - API architecture
+
+## 🛠️ Data Model 
+![CareConnect data model](./src/assets/screenshots/datamodel.png)
+
+## 📱 Screenshots
+
+![1](./src/assets/screenshots/appdemo1.png)
+![2](./src/assets/screenshots/appdemo2.png)
+![1](./src/assets/screenshots/appdemo1.png)
+
+## 🧩 Project Structure
+
+```
+careconnect/
+├── src/
+│   ├── assets/           # Images, icons, and fonts
+│   ├── components/       # Reusable UI components
+│   ├── context/          # React context providers
+│   ├── navigation/       # Navigation configuration
+│   ├── screens/
+│   │   ├── auth/         # Authentication screens
+│   │   ├── doctor/       # Doctor-specific screens
+│   │   └── patient/      # Patient-specific screens
+│   ├── services/         # API services
+│   └── utils/            # Helper functions
 ```
 
-## Step 2: Build and run your app
+## 📋 Future Scope
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+- [ ] Video consultation feature
+- [ ] In-app messaging between doctors and patients
+- [ ] Health records integration
+- [ ] Payment processing integration
+- [ ] Multi-language support
 
-### Android
+## 💻 Testing
 
-```sh
-# Using npm
-npm run android
 
-# OR using Yarn
-yarn android
-```
+## Authors
 
-### iOS
+- [@sahildevil](https://github.com/sahildevil)
+- [@Neelancy1504](https://github.com/Neelancy1504)
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+---
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+<p align="center">Made with ❤️ for better healthcare access</p>
