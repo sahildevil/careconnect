@@ -421,7 +421,19 @@ const DoctorListScreen = () => {
       }))
     );
     
-    setFilteredDoctors(filtered);
+    // Fix the distance sorting by ensuring values are numbers
+    switch(sortBy) {
+      case 'distance':
+        filtered.sort((a, b) => {
+          // Convert to number and handle undefined/null values
+          const distA = typeof a.distance === 'number' ? a.distance : Infinity;
+          const distB = typeof b.distance === 'number' ? b.distance : Infinity;
+          
+          return sortOrder === 'ascending' ? distA - distB : distB - distA;
+        });
+        break;
+      // Other sort cases remain the same...
+    }
     
     // Log after sorting
     console.log('After sorting, first 3 doctors distances:', 
@@ -430,6 +442,8 @@ const DoctorListScreen = () => {
         distance: d.distance
       }))
     );
+
+    setFilteredDoctors(filtered);
   };
 
   const toggleSortBy = (newSortBy) => {
@@ -454,6 +468,7 @@ const DoctorListScreen = () => {
     'General Medicine',
   ];
 
+  // 1. Update the renderDistanceText function to always show distance when available
   const renderDistanceText = (item) => {
     if (!item.distance) return null;
     
