@@ -1,10 +1,12 @@
-# CareConnect
+# CareConnect 
 
 ![CareConnect](./src/assets/screenshots/cover2.png)
 
+**By team TechTribe**
+
 CareConnect is a user-friendly mobile application built with React Native that bridges the gap between patients and healthcare providers. The platform enables patients to discover doctors, schedule appointments, and manage their healthcare journey, while providing doctors with tools to efficiently manage their practice and patient interactions.
 
-This project has been developed as a submission for the Veersa Hackathon.
+This project has been developed as a submission for the Veersa Hackathon, addressing Use Case 3: a mobile application for scheduling appointments between patients and doctors.
 
 **Server Repo** - https://github.com/sahildevil/careconnect_server 
 
@@ -70,6 +72,11 @@ This project has been developed as a submission for the Veersa Hackathon.
 ![3](./src/assets/screenshots/appdemo3.png)
 ![4](./src/assets/screenshots/appdemo4.png)
 ![5](./src/assets/screenshots/appdemo5.png)
+
+## 📽️ Demo Video
+<a href="https://res.cloudinary.com/dncukx7es/video/upload/v1748187038/VN20250525_205059_zcdupi.mp4" target="_blank">
+  <img src="https://res.cloudinary.com/dncukx7es/image/upload/v1748187249/Screenshot_20250525-011954_s2el4c.png" alt="Watch the video" width="200"/>
+</a>
 
 ## 🧩 Project Structure
 
