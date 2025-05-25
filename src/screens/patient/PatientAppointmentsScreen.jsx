@@ -111,7 +111,7 @@ const PatientAppointmentsScreen = () => {
     const sortedAppointments = filteredAppointments.sort((a, b) => {
       const dateA = new Date(a.appointment_date);
       const dateB = new Date(b.appointment_date);
-      return dateA - dateB; 
+      return dateA - dateB;
     });
 
     const appointmentsWithSeparators = [];
@@ -163,16 +163,23 @@ const PatientAppointmentsScreen = () => {
   };
 
   // Update the appointment item to show pending status differently
+  // Update the renderAppointmentItem function to display IST time:
   const renderAppointmentItem = ({item}) => {
+    // Convert UTC appointment date to IST for display
     const appointmentDate = new Date(item.appointment_date);
-    const formattedDate = appointmentDate.toLocaleDateString('en-US', {
+
+    const formattedDate = appointmentDate.toLocaleDateString('en-IN', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: 'Asia/Kolkata',
     });
-    const formattedTime = appointmentDate.toLocaleTimeString([], {
+
+    const formattedTime = appointmentDate.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
     });
 
     const doctorData = item.doctor || item.doctors || {};

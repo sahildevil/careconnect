@@ -2,8 +2,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert} from 'react-native';
 
-//const API_URL = 'http://192.168.1.8:3000/api';
-const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
+const API_URL = 'http://192.168.1.10:3000/api';
+//const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,

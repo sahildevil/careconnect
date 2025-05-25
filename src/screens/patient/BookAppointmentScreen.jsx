@@ -438,7 +438,7 @@ const BookAppointmentScreen = () => {
         clearInterval(refreshIntervalRef.current);
         refreshIntervalRef.current = setInterval(() => {
           fetchBookedSlots(selectedDate, true);
-        }, 15000);
+        }, 5000);
       }
     }
   };
