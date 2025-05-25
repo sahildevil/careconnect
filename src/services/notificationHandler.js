@@ -1,7 +1,6 @@
-import {Alert} from 'react-native'; // Add this import
+import {Alert} from 'react-native'; 
 import {calendarService} from './calendarService';
 
-// Add this function to handle appointment confirmations
 export const handleAppointmentConfirmation = (appointmentData) => {
   // Show calendar prompt when appointment is confirmed
   const calendarData = {

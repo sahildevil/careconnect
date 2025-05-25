@@ -1,7 +1,6 @@
 import { Platform } from 'react-native';
 
-// You should store this in an environment variable in a real app
-const GOOGLE_API_KEY = 'AlzaSyqZs_bjOOJpN6SgvYMQcE_1ODyr21cj31E';
+const GOOGLE_API_KEY = process.env.maps_api_key;
 
 /**
  * Calculate straight-line distance using Haversine formula

@@ -368,7 +368,7 @@ export const doctorService = {
 
   checkOnboardingStatus: async doctorId => {
     try {
-      // Fixed: Accept doctorId as parameter instead of using undefined 'user'
+      // Accept doctorId as parameter instead of using undefined 'user'
       if (!doctorId) {
         // Get doctor ID from AsyncStorage if not provided
         const userString = await AsyncStorage.getItem('user');
@@ -558,7 +558,6 @@ export const appointmentService = {
     } catch (error) {
       console.error('Error fetching appointment details:', error);
 
-      // Provide more specific error messages
       if (error.response?.status === 404) {
         throw new Error(
           'Appointment not found or you do not have permission to view it',

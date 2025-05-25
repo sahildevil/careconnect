@@ -14,15 +14,6 @@ import {useAuth} from '../../context/AuthContext';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-const ServiceItem = ({icon, title}) => (
-  <TouchableOpacity style={styles.serviceItem}>
-    <View style={styles.serviceIconContainer}>
-      <Icon name={icon} size={22} color="#0CB69B" />
-    </View>
-    <Text style={styles.serviceText}>{title}</Text>
-  </TouchableOpacity>
-);
-
 const MenuLink = ({icon, title}) => (
   <TouchableOpacity style={styles.menuLink}>
     <View style={styles.menuIconContainer}>
@@ -91,18 +82,6 @@ const PatientProfileScreen = () => {
       </View>
       
       <ScrollView style={styles.contentSection}>
-        {/* Services Section */}
-        {/* <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Service</Text>
-          <View style={styles.servicesGrid}>
-            <ServiceItem icon="cart-outline" title="Cart" />
-            <ServiceItem icon="checkmark-circle-outline" title="Consultation" />
-            <ServiceItem icon="calendar-outline" title="Appointment" />
-            <ServiceItem icon="book-outline" title="Lecture" />
-            <ServiceItem icon="information-circle-outline" title="Information" />
-          </View>
-        </View>
-         */}
         {/* Others Section */}
                   <Text style={styles.sectionTitle}>Options</Text>
         <View style={styles.sectionContainer}>

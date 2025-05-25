@@ -10,7 +10,6 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {appointmentService} from '../../services/api';
 import {useAuth} from '../../context/AuthContext';
@@ -33,12 +32,10 @@ const PatientAppointmentsScreen = () => {
   const netInfo = useNetInfo();
   const insets = useSafeAreaInsets();
 
-  // Use useFocusEffect instead of useEffect for navigation focus
   useFocusEffect(
     React.useCallback(() => {
       console.log(`PatientAppointmentsScreen focused for user: ${user?.id}`);
 
-      // Check network connectivity
       if (!netInfo.isConnected && netInfo.isInternetReachable === false) {
         Alert.alert(
           'No Internet Connection',
@@ -70,7 +67,6 @@ const PatientAppointmentsScreen = () => {
               );
 
               if (response.success) {
-                // Update the appointment status in context instead of local state
                 contextCancelAppointment(appointmentId);
                 Alert.alert('Success', 'Appointment cancelled successfully');
               } else {
@@ -87,7 +83,6 @@ const PatientAppointmentsScreen = () => {
     }
   };
 
-  // Modify the getFilteredAppointments function to group appointments by date
   const getFilteredAppointments = () => {
     const now = new Date();
 
@@ -106,7 +101,6 @@ const PatientAppointmentsScreen = () => {
         app => app.status === 'completed',
       );
     } else if (activeTab === 'cancelled') {
-      // Handle both spellings for backwards compatibility
       filteredAppointments = appointments.filter(
         app => app.status === 'canceled' || app.status === 'cancelled',
       );
@@ -114,14 +108,12 @@ const PatientAppointmentsScreen = () => {
       filteredAppointments = [...appointments];
     }
 
-    // Sort appointments by appointment date (soonest first)
     const sortedAppointments = filteredAppointments.sort((a, b) => {
       const dateA = new Date(a.appointment_date);
       const dateB = new Date(b.appointment_date);
-      return dateA - dateB; // Ascending order (soonest first)
+      return dateA - dateB; 
     });
 
-    // Now add date separators to the sorted appointments
     const appointmentsWithSeparators = [];
     let currentDate = null;
 
@@ -129,11 +121,9 @@ const PatientAppointmentsScreen = () => {
       const appointmentDate = new Date(appointment.appointment_date);
       const appointmentDateString = appointmentDate.toDateString();
 
-      // If this appointment is on a different day than the previous one, add a separator
       if (currentDate !== appointmentDateString) {
         currentDate = appointmentDateString;
 
-        // Format the date nicely
         const formattedDate = appointmentDate.toLocaleDateString('en-US', {
           weekday: 'long',
           day: 'numeric',
@@ -149,7 +139,6 @@ const PatientAppointmentsScreen = () => {
         });
       }
 
-      // Then add the appointment with type 'appointment'
       appointmentsWithSeparators.push({
         ...appointment,
         type: 'appointment',
@@ -159,7 +148,6 @@ const PatientAppointmentsScreen = () => {
     return appointmentsWithSeparators;
   };
 
-  // Add a renderItem function that can handle both appointments and separators
   const renderItem = ({item}) => {
     if (item.type === 'separator') {
       return (
@@ -171,7 +159,6 @@ const PatientAppointmentsScreen = () => {
       );
     }
 
-    // This is a regular appointment item
     return renderAppointmentItem({item});
   };
 
@@ -188,7 +175,6 @@ const PatientAppointmentsScreen = () => {
       minute: '2-digit',
     });
 
-    // Get doctor data consistently
     const doctorData = item.doctor || item.doctors || {};
 
     return (
@@ -523,11 +509,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  // dateSeparatorLine: {
-  //   height: 1,
-  //   width: '100%',
-  //   backgroundColor: '#ddd',
-  // },
   dateSeparatorText: {
     fontSize: 14,
     color: '#000',

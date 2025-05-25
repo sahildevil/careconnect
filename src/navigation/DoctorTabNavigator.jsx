@@ -2,7 +2,7 @@ import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-// Import Doctor Screens
+// Doctor Screens
 import DoctorHomeScreen from '../screens/doctor/DoctorHomeScreen';
 import DoctorAppointmentsScreen from '../screens/doctor/DoctorAppointmentsScreen';
 import DoctorProfileScreen from '../screens/doctor/DoctorProfileScreen';

@@ -12,18 +12,12 @@ import UserTypeSelection from '../screens/auth/UserTypeSelection';
 import DoctorSignUp from '../screens/auth/DoctorSignUp';
 
 // Patient Screens
-import PatientHomeScreen from '../screens/patient/PatientHomeScreen';
-import PatientAppointmentsScreen from '../screens/patient/PatientAppointmentsScreen';
-import PatientProfileScreen from '../screens/patient/PatientProfileScreen';
 import DoctorListScreen from '../screens/patient/DoctorListScreen';
 import DoctorDetailScreen from '../screens/patient/DoctorDetailScreen';
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import PatientTabNavigator from './PatientTabNavigator';
 
 // Doctor Screens
-import DoctorHomeScreen from '../screens/doctor/DoctorHomeScreen';
-import DoctorAppointmentsScreen from '../screens/doctor/DoctorAppointmentsScreen';
-import DoctorProfileScreen from '../screens/doctor/DoctorProfileScreen';
 import DoctorScheduleScreen from '../screens/doctor/DoctorScheduleScreen';
 import DoctorTabNavigator from './DoctorTabNavigator';
 import AppointmentDetailScreen from '../screens/shared/AppointmentDetailScreen';
@@ -146,7 +140,6 @@ const AppNavigator = () => {
     return () => subscription?.remove();
   }, [appState, isInitialized, refreshAuthState]);
 
-  // Debug logging
   useEffect(() => {
     console.log('AppNavigator - Auth state:', {
       isAuthenticated,
@@ -157,7 +150,6 @@ const AppNavigator = () => {
     });
   }, [user, userType, loading, isAuthenticated, isInitialized]);
 
-  // ALWAYS call useMemo - move it before any conditional returns
   const needsDoctorOnboarding = useMemo(() => {
     if (isAuthenticated && userType === 'doctor' && user) {
       return !user.profile || user.profile.onboarding_complete === false;
@@ -165,7 +157,6 @@ const AppNavigator = () => {
     return false;
   }, [isAuthenticated, userType, user]);
 
-  // ALWAYS call useMemo for initial route - move it here too
   const initialRoute = useMemo(() => {
     if (!isAuthenticated) {
       return 'Auth';
@@ -178,7 +169,6 @@ const AppNavigator = () => {
     }
   }, [isAuthenticated, userType, needsDoctorOnboarding]);
 
-  // Wait for initialization - this conditional return comes AFTER all hooks
   if (!isInitialized || loading) {
     return (
       <View style={styles.loadingContainer}>

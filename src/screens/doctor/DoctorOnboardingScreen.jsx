@@ -372,7 +372,6 @@ const LocationMapSearch = ({onLocationSelect, onCancel}) => {
         startInLoadingState={true}
         onError={error => console.error('WebView error:', error)}
         showsVerticalScrollIndicator={true}
-        // Add these lines to improve the scrolling behavior
         contentInset={{top: 0, left: 0, bottom: 0, right: 0}}
         automaticallyAdjustContentInsets={false}
         scalesPageToFit={false}
@@ -390,12 +389,10 @@ const DoctorOnboardingScreen = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
-  // Add console log for debugging
   useEffect(() => {
     console.log('Current user data in onboarding:', user);
   }, [user]);
 
-  // Form data
   const [consultationFee, setConsultationFee] = useState('');
   const [selectedDays, setSelectedDays] = useState([
     'Monday',
@@ -454,7 +451,6 @@ const DoctorOnboardingScreen = () => {
       }
       setCurrentStep(3);
     } else if (currentStep === 3) {
-      // Check if both latitude and longitude are available, not just locationSelected flag
       if (!latitude || !longitude || !address) {
         Alert.alert('Required', 'Please select your clinic location');
         return;
@@ -475,12 +471,10 @@ const DoctorOnboardingScreen = () => {
     try {
       setLoading(true);
 
-      // Make sure we have the user id
       if (!user || !user.id) {
         throw new Error('User data is missing. Please log in again.');
       }
 
-      // Make sure location is selected
       if (!latitude || !longitude) {
         throw new Error('Please select your clinic location.');
       }
@@ -493,7 +487,7 @@ const DoctorOnboardingScreen = () => {
         bio: bio,
         latitude: latitude,
         longitude: longitude,
-        location_link: address, // Use address as location_link
+        location_link: address, 
       };
 
       console.log('Sending onboarding data:', onboardingData);
@@ -501,7 +495,6 @@ const DoctorOnboardingScreen = () => {
       const response = await doctorService.completeOnboarding(onboardingData);
 
       if (response.success) {
-        // Update local user data to reflect onboarding completion
         updateUser({
           ...user,
           profile: {
@@ -559,8 +552,8 @@ const DoctorOnboardingScreen = () => {
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
-          scrollEnabled={!showMap} // Disable outer scrolling when map is shown
-          keyboardShouldPersistTaps="handled" // Improve keyboard interaction
+          scrollEnabled={!showMap} 
+          keyboardShouldPersistTaps="handled" 
         >
           {currentStep === 1 && (
             <View style={styles.stepContainer}>
@@ -609,7 +602,7 @@ const DoctorOnboardingScreen = () => {
                   <CustomPicker
                     selectedValue={startTime}
                     onValueChange={setStartTime}
-                    items={timeSlots}  // Pass the array directly, not mapped to objects
+                    items={timeSlots}  
                     style={styles.timePicker}
                   />
                 </View>
@@ -619,7 +612,7 @@ const DoctorOnboardingScreen = () => {
                   <CustomPicker
                     selectedValue={endTime}
                     onValueChange={setEndTime}
-                    items={timeSlots}  // Pass the array directly, not mapped to objects
+                    items={timeSlots} 
                     style={styles.timePicker}
                   />
                 </View>
@@ -668,7 +661,7 @@ const DoctorOnboardingScreen = () => {
               ) : (
                 <LocationMapSearch
                   onLocationSelect={location => {
-                    console.log('Location selected:', location); // Add debug log
+                    console.log('Location selected:', location); 
                     setLatitude(location.latitude);
                     setLongitude(location.longitude);
                     setAddress(location.address);

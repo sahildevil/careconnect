@@ -122,11 +122,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectedText: {
-    color: '#333', // Dark color for selected text
+    color: '#333', 
     fontWeight: '500',
   },
   placeholderText: {
-    color: '#999', // Light color for placeholder
+    color: '#999', 
   },
   overlay: {
     flex: 1,

@@ -26,7 +26,6 @@ const DoctorDetailScreen = () => {
   const insets = useSafeAreaInsets();
   useEffect(() => {
     if (doctorFromParams) {
-      // If we received the full doctor object, use it directly
       setDoctor(doctorFromParams);
       setLoading(false);
     } else if (doctorId) {
