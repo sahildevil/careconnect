@@ -7,8 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Platform, Alert, Linking} from 'react-native';
 import axios from 'axios';
 import {PermissionsAndroid} from 'react-native';
-const API_URL = 'http://192.168.1.10:3000/api';
-//const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
+//const API_URL = 'http://192.168.1.10:3000/api';
+const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
 const notificationApi = axios.create({
   baseURL: API_URL,
   timeout: 10000,

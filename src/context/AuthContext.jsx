@@ -18,8 +18,8 @@ export const AuthProvider = ({children}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const API_URL = 'http://192.168.1.10:3000/api'; // Using teammate's IP
-  //const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
+  //const API_URL = 'http://192.168.1.10:3000/api'; // Using teammate's IP
+  const API_URL = 'https://careconnect-server-teal.vercel.app/api'; // Using Vercel deployment
   useEffect(() => {
     // Initial load
     loadUserFromStorage();

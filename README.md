@@ -4,13 +4,15 @@
 
 CareConnect is a user-friendly mobile application built with React Native that bridges the gap between patients and healthcare providers. The platform enables patients to discover doctors, schedule appointments, and manage their healthcare journey, while providing doctors with tools to efficiently manage their practice and patient interactions.
 
-**Server Repo** - https://github.com/sahildevil/careconnect_server 
+This project has been developed as a submission for the Veersa Hackathon.
 
-**Website Repo** - https://github.com/sahildevil/careconnect_server 
+**Server Repo** - https://github.com/sahildevil/careconnect_server 
 
 **Figma:** - https://www.figma.com/design/dumfvVWw44B3CGGGFZJsPE/CareConnect?node-id=0-1&t=ePAsApcBFMhyXNAY-1
 
-**APK:** - 
+**APK:** - https://drive.google.com/drive/folders/1IdTUlCvwAt6oYTvxSbs4811QhExKpdxK?usp=sharing
+
+**Website Repo** - https://github.com/anchal6904/careconnect
 
 ## ✨ Features
 
