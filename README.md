@@ -6,7 +6,9 @@ CareConnect is a user-friendly mobile application built with React Native that b
 
 **Server Repo** - https://github.com/sahildevil/careconnect_server 
 
-**Figma:** -  
+**Website Repo** - https://github.com/sahildevil/careconnect_server 
+
+**Figma:** - https://www.figma.com/design/dumfvVWw44B3CGGGFZJsPE/CareConnect?node-id=0-1&t=ePAsApcBFMhyXNAY-1
 
 **APK:** - 
 
@@ -80,6 +82,7 @@ careconnect/
 │   │   ├── auth/         # Authentication screens
 │   │   ├── doctor/       # Doctor-specific screens
 │   │   └── patient/      # Patient-specific screens
+│   │   └── shared/       # Shared screens
 │   ├── services/         # API services
 │   └── utils/            # Helper functions
 ```
@@ -93,7 +96,16 @@ careconnect/
 - [ ] Multi-language support
 
 ## 💻 Testing
-
+<table>
+  <tr>
+    <td><img src="./src/assets/screenshots/test1.png" alt="Signup API Test" width="200"/></td>
+    <td><img src="./src/assets/screenshots/test2.png" alt="Login API Test" width="200"/></td>
+  </tr>
+  <tr>
+    <td>Sign Up API test</td>
+    <td>Login API test</td>
+  </tr>
+</table>
 
 ## Authors
 

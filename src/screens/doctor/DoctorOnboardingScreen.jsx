@@ -51,7 +51,7 @@ const DaysOfWeekPicker = ({selectedDays, onDayToggle}) => {
 };
 
 const LocationMapSearch = ({onLocationSelect, onCancel}) => {
-  const apiKey = 'AlzaSyqZs_bjOOJpN6SgvYMQcE_1ODyr21cj31E'; // Replace with your actual API key
+  const apiKey = process.env.maps_api_key;
 
   const htmlContent = `
     <!DOCTYPE html>
