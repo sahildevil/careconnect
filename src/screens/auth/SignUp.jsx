@@ -104,7 +104,7 @@ const SignUp = () => {
             <Text style={styles.logoText}>CareConnect</Text>
             <Text style={styles.headerText}>Create Account</Text>
             <Text style={styles.subHeaderText}>
-              Join our healthcare community
+              Get Access To Care Right Away!
             </Text>
           </View>
 
@@ -217,10 +217,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   logoText: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#0CB69B',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   headerText: {
     fontSize: 24,

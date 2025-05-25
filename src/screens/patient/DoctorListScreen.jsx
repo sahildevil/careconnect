@@ -20,7 +20,10 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import {doctorService} from '../../services/api';
 import Geolocation from 'react-native-geolocation-service';
 import {useAuth} from '../../context/AuthContext';
-import {calculateHaversineDistance, calculateRouteDistances} from '../../utils/geoUtils';
+import {
+  calculateHaversineDistance,
+  calculateRouteDistances,
+} from '../../utils/geoUtils';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 
@@ -31,38 +34,38 @@ const DoctorListScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
   const [error, setError] = useState(null);
-  
+
   // Location states
   const [userLocation, setUserLocation] = useState(null);
   const [sortBy, setSortBy] = useState('distance'); // 'distance', 'rating', or 'fees'
   const [sortOrder, setSortOrder] = useState('ascending'); // 'ascending' or 'descending'
   const [distanceLoading, setDistanceLoading] = useState(false);
   const [useRouteDistance, setUseRouteDistance] = useState(false);
-  
+
   // Filter states
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [maxFee, setMaxFee] = useState(5000);
   const [maxDistance, setMaxDistance] = useState(50);
   const [minExperience, setMinExperience] = useState(0);
   const [applyingFilters, setApplyingFilters] = useState(false);
-  
+
   // Keep original values for reset
   const [originalMaxFee, setOriginalMaxFee] = useState(5000);
   const [originalMaxDistance, setOriginalMaxDistance] = useState(50);
   const [originalMinExperience, setOriginalMinExperience] = useState(0);
-  
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const {user} = useAuth();
-  
+
   // For detecting first render
   const isInitialRender = useRef(true);
 
   useEffect(() => {
     // Get user location first (if possible)
     getUserLocation();
-    
+
     // Check if specialty was passed as a param
     if (route.params?.specialty) {
       setSelectedSpecialty(route.params.specialty);
@@ -73,7 +76,7 @@ const DoctorListScreen = () => {
       setSearchQuery(route.params.searchQuery);
       filterDoctors(); // Ensure doctors are filtered based on the query
     }
-    
+
     // Initialize filter values based on data
     const initializeFilters = async () => {
       try {
@@ -82,17 +85,17 @@ const DoctorListScreen = () => {
           // Find maximum fee
           const highestFee = Math.max(
             ...response.doctors.map(
-              doc => parseInt(doc.consultation_fee) || 500
+              doc => parseInt(doc.consultation_fee) || 500,
             ),
-            5000
+            5000,
           );
           setMaxFee(highestFee);
           setOriginalMaxFee(highestFee);
-          
+
           // Find highest experience
           const highestExperience = Math.max(
             ...response.doctors.map(doc => parseInt(doc.experience) || 5),
-            10
+            10,
           );
           // Keep min experience at 0, but we have the max for reference
           console.log('Maximum values:', {highestFee, highestExperience});
@@ -101,7 +104,7 @@ const DoctorListScreen = () => {
         console.error('Error initializing filters:', error);
       }
     };
-    
+
     initializeFilters();
   }, [route.params]);
 
@@ -111,32 +114,141 @@ const DoctorListScreen = () => {
       isInitialRender.current = false;
       return;
     }
-    
+
     if (doctors.length > 0) {
       filterAndSortDoctors();
     }
-  }, [searchQuery, selectedSpecialty, doctors, sortBy, sortOrder, applyingFilters]);
+  }, [
+    searchQuery,
+    selectedSpecialty,
+    doctors,
+    sortBy,
+    sortOrder,
+    applyingFilters,
+  ]);
 
+  // Replace the getUserLocation function:
   const getUserLocation = async () => {
     try {
+      let location = null;
+
       // Check if we have stored user location
       if (user && user.latitude && user.longitude) {
-        const location = {
+        location = {
           latitude: parseFloat(user.latitude),
-          longitude: parseFloat(user.longitude)
+          longitude: parseFloat(user.longitude),
         };
         console.log('Using stored user location:', location);
         setUserLocation(location);
-        
-        // Fetch all doctors first
-        await fetchDoctors();
       } else {
-        // Request location permission
-        requestLocationPermission();
+        // Request location permission and get current location
+        await requestLocationPermission();
+        return; // Let requestLocationPermission handle the rest
+      }
+
+      // If we have location, fetch doctors with it
+      if (location) {
+        await fetchDoctorsWithLocation(location);
+      } else {
+        await fetchDoctors(true);
       }
     } catch (error) {
       console.error('Error getting user location:', error);
-      fetchDoctors();
+      // Fetch doctors without location
+      await fetchDoctors(true);
+    }
+  };
+
+  // Add this new function that accepts location as parameter:
+  const fetchDoctorsWithLocation = async location => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await doctorService.getAllDoctors();
+
+      if (response.success) {
+        const visibleDoctors = response.doctors.filter(
+          doc => doc.is_visible !== false,
+        );
+
+        console.log(`Found ${visibleDoctors.length} visible doctors`);
+
+        // Calculate distances immediately with the provided location
+        if (location && location.latitude && location.longitude) {
+          await calculateDistancesWithLocation(visibleDoctors, location);
+        } else {
+          setDoctors(visibleDoctors);
+          setFilteredDoctors(visibleDoctors);
+        }
+      } else {
+        setError('Failed to fetch doctors');
+      }
+    } catch (error) {
+      setError('Error connecting to server');
+      console.error('Error fetching doctors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add this new function that takes location as parameter:
+  const calculateDistancesWithLocation = async (doctorsList, location) => {
+    try {
+      setDistanceLoading(true);
+
+      console.log(
+        `Calculating distances for ${doctorsList.length} doctors with location:`,
+        location,
+      );
+
+      const doctorsWithDistances = doctorsList.map((doctor, index) => {
+        if (!doctor.latitude || !doctor.longitude) {
+          console.log(`Doctor ${doctor.name} has no coordinates`);
+          return {
+            ...doctor,
+            distance: null,
+          };
+        }
+
+        try {
+          const distance = calculateHaversineDistance(
+            location.latitude,
+            location.longitude,
+            parseFloat(doctor.latitude),
+            parseFloat(doctor.longitude),
+          );
+
+          console.log(`Distance to Dr. ${doctor.name}: ${distance}km`);
+
+          return {
+            ...doctor,
+            distance: distance,
+            distanceSource: 'haversine',
+          };
+        } catch (error) {
+          console.error(
+            `Error calculating distance for ${doctor.name}:`,
+            error,
+          );
+          return {
+            ...doctor,
+            distance: null,
+          };
+        }
+      });
+
+      console.log('Distance calculation completed');
+
+      // Set doctors with distances
+      setDoctors(doctorsWithDistances);
+      setFilteredDoctors(doctorsWithDistances);
+    } catch (error) {
+      console.error('Error calculating distances:', error);
+      setDoctors(doctorsList);
+      setFilteredDoctors(doctorsList);
+    } finally {
+      setDistanceLoading(false);
     }
   };
 
@@ -147,7 +259,8 @@ const DoctorListScreen = () => {
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
             title: 'Location Permission',
-            message: 'CareConn needs access to your location to find nearby doctors',
+            message:
+              'CareConn needs access to your location to find nearby doctors',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -175,37 +288,74 @@ const DoctorListScreen = () => {
       position => {
         const location = {
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          longitude: position.coords.longitude,
         };
         console.log('Got current location:', location);
-        
+
         setUserLocation(location);
-        fetchDoctors();
+        // Use the new function that accepts location parameter
+        fetchDoctorsWithLocation(location);
       },
       error => {
         console.error('Error getting current location:', error);
-        fetchDoctors();
+        fetchDoctors(true); // Fallback to fetch without location
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
     );
   };
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = async (forceLocationCheck = false) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await doctorService.getAllDoctors();
 
       if (response.success) {
-        // Only show visible doctors
-        const visibleDoctors = response.doctors.filter(doc => doc.is_visible !== false);
-        console.log(`Found ${visibleDoctors.length} visible doctors`);
-        
-        // If we have user location, calculate distances
-        if (userLocation) {
+        const visibleDoctors = response.doctors.filter(
+          doc => doc.is_visible !== false,
+        );
+
+        // Debug: Check how many doctors have coordinates
+        const doctorsWithCoords = visibleDoctors.filter(
+          d => d.latitude && d.longitude,
+        );
+        console.log(
+          `Found ${visibleDoctors.length} visible doctors, ${doctorsWithCoords.length} have coordinates`,
+        );
+
+        // Log sample doctor data
+        console.log(
+          'Sample doctor data:',
+          visibleDoctors.slice(0, 2).map(d => ({
+            name: d.name,
+            latitude: d.latitude,
+            longitude: d.longitude,
+            hasCoords: !!(d.latitude && d.longitude),
+          })),
+        );
+
+        // If we don't have userLocation yet, try to get it
+        if (!userLocation && !forceLocationCheck) {
+          console.log(
+            'No user location available, attempting to get location first...',
+          );
+
+          // Set doctors without distances temporarily
+          setDoctors(visibleDoctors);
+          setFilteredDoctors(visibleDoctors);
+
+          // Try to get location and then recalculate
+          try {
+            await getUserLocationAndCalculateDistances(visibleDoctors);
+          } catch (locationError) {
+            console.log('Could not get location, proceeding without distances');
+          }
+        } else if (userLocation) {
+          // We have location, calculate distances
           await calculateDistancesForDoctors(visibleDoctors);
         } else {
+          // No location available and we've already tried, just set doctors
           setDoctors(visibleDoctors);
           setFilteredDoctors(visibleDoctors);
         }
@@ -219,60 +369,127 @@ const DoctorListScreen = () => {
       setLoading(false);
     }
   };
+  const getUserLocationAndCalculateDistances = async doctorsList => {
+    return new Promise((resolve, reject) => {
+      // Check if we have stored user location first
+      if (user && user.latitude && user.longitude) {
+        const location = {
+          latitude: parseFloat(user.latitude),
+          longitude: parseFloat(user.longitude),
+        };
+        console.log(
+          'Using stored user location for distance calculation:',
+          location,
+        );
+        setUserLocation(location);
+        calculateDistancesWithLocation(doctorsList, location)
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
 
+      // Try to get current position with a shorter timeout for this scenario
+      Geolocation.getCurrentPosition(
+        position => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          console.log(
+            'Got current location for distance calculation:',
+            location,
+          );
+          setUserLocation(location);
+          calculateDistancesWithLocation(doctorsList, location)
+            .then(resolve)
+            .catch(reject);
+        },
+        error => {
+          console.error(
+            'Error getting location for distance calculation:',
+            error,
+          );
+          reject(error);
+        },
+        {enableHighAccuracy: false, timeout: 8000, maximumAge: 30000}, // Shorter timeout, allow cached location
+      );
+    });
+  };
   // Improve the location handling in your app:
-  const calculateDistancesForDoctors = async (doctorsList) => {
+  const calculateDistancesForDoctors = async doctorsList => {
     try {
       setDistanceLoading(true);
-      
+
       if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
         console.warn('User location not available for distance calculation');
         setDoctors(doctorsList);
         setFilteredDoctors(doctorsList);
         return;
       }
-      
+
       console.log(`Calculating distances for ${doctorsList.length} doctors`);
-      
-      // Use Haversine formula (faster, less accurate)
-      const doctorsWithDistances = doctorsList.map(doctor => {
+      console.log('User location:', userLocation);
+
+      // Add more detailed logging
+      const doctorsWithDistances = doctorsList.map((doctor, index) => {
+        console.log(`Processing doctor ${index + 1}:`, {
+          name: doctor.name,
+          latitude: doctor.latitude,
+          longitude: doctor.longitude,
+          hasCoords: !!(doctor.latitude && doctor.longitude),
+        });
+
         // Skip if doctor has no coordinates
         if (!doctor.latitude || !doctor.longitude) {
+          console.log(`Doctor ${doctor.name} has no coordinates`);
           return {
             ...doctor,
-            distance: null
+            distance: null,
           };
         }
-        
-        const distance = calculateHaversineDistance(
-          userLocation.latitude,
-          userLocation.longitude,
-          parseFloat(doctor.latitude || 0),
-          parseFloat(doctor.longitude || 0)
-        );
-        
-        return {
-          ...doctor,
-          distance,
-          distanceSource: 'haversine'
-        };
+
+        try {
+          const distance = calculateHaversineDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            parseFloat(doctor.latitude),
+            parseFloat(doctor.longitude),
+          );
+
+          console.log(`Distance to Dr. ${doctor.name}: ${distance}km`);
+
+          return {
+            ...doctor,
+            distance: distance,
+            distanceSource: 'haversine',
+          };
+        } catch (error) {
+          console.error(
+            `Error calculating distance for ${doctor.name}:`,
+            error,
+          );
+          return {
+            ...doctor,
+            distance: null,
+          };
+        }
       });
-      
-      console.log(`Distance calculation completed for ${doctorsWithDistances.length} doctors`);
-      console.log('Sample distances:', doctorsWithDistances.slice(0, 3).map(d => d.distance));
-      
+
+      console.log(`Distance calculation completed`);
+      console.log(
+        'Doctors with calculated distances:',
+        doctorsWithDistances.map(d => ({
+          name: d.name,
+          distance: d.distance,
+          hasCoords: !!(d.latitude && d.longitude),
+        })),
+      );
+
       // Set doctors with distances
       setDoctors(doctorsWithDistances);
-      
-      // Initial sort by distance
-      const sortedDoctors = [...doctorsWithDistances].sort((a, b) => {
-        const distA = typeof a.distance === 'number' ? a.distance : Infinity;
-        const distB = typeof b.distance === 'number' ? b.distance : Infinity;
-        return distA - distB;
-      });
-      
-      setFilteredDoctors(sortedDoctors);
-      
+
+      // Don't sort here, let the filterAndSortDoctors function handle it
+      setFilteredDoctors(doctorsWithDistances);
     } catch (error) {
       console.error('Error calculating distances:', error);
       setDoctors(doctorsList);
@@ -287,14 +504,14 @@ const DoctorListScreen = () => {
     setMaxDistance(originalMaxDistance);
     setMinExperience(originalMinExperience);
   };
-  
+
   const applyFilters = () => {
     setShowFilterModal(false);
     setApplyingFilters(!applyingFilters); // Toggle to trigger the useEffect
   };
-  
-  const removeFilter = (filterType) => {
-    switch(filterType) {
+
+  const removeFilter = filterType => {
+    switch (filterType) {
       case 'fees':
         setMaxFee(originalMaxFee);
         break;
@@ -314,37 +531,38 @@ const DoctorListScreen = () => {
 
   const filterAndSortDoctors = () => {
     let filtered = [...doctors];
-    console.log('Sorting by:', sortBy, 'Order:', sortOrder);
-    
+    console.log('Starting filter with', filtered.length, 'doctors');
+    console.log('User location:', userLocation);
+
     // Filter by specialty
     if (selectedSpecialty) {
       filtered = filtered.filter(doctor => {
-        // Your existing specialty filtering logic
         const docSpecialty = (doctor.specialty || '').trim().toLowerCase();
         const selectedSpec = selectedSpecialty.trim().toLowerCase();
-        
-        // Map similar specialties for better matching
+
         const specialtyMap = {
-          'orthopedic': ['orthopedics', 'orthopaedic', 'orthopaedics'],
-          'cardiology': ['cardiologist', 'heart specialist', 'cardiac'],
-          'dermatology': ['dermatologist', 'skin specialist'],
-          'neurology': ['neurologist', 'neuro', 'brain specialist'],
-          'pediatrics': ['pediatric', 'pediatrician', 'child specialist'],
-          'dentist': ['dental', 'dentistry'],
-          'general medicine': ['general physician', 'family medicine', 'gp']
+          orthopedic: ['orthopedics', 'orthopaedic', 'orthopaedics'],
+          cardiology: ['cardiologist', 'heart specialist', 'cardiac'],
+          dermatology: ['dermatologist', 'skin specialist'],
+          neurology: ['neurologist', 'neuro', 'brain specialist'],
+          pediatrics: ['pediatric', 'pediatrician', 'child specialist'],
+          dentist: ['dental', 'dentistry'],
+          'general medicine': ['general physician', 'family medicine', 'gp'],
         };
-        
-        // Check for direct match
+
         if (docSpecialty === selectedSpec) return true;
-        
-        // Check for related specialties
+
         for (const [key, values] of Object.entries(specialtyMap)) {
-          if ((key.includes(selectedSpec) || values.some(v => selectedSpec.includes(v))) && 
-              (docSpecialty.includes(key) || values.some(v => docSpecialty.includes(v)))) {
-              return true;
+          if (
+            (key.includes(selectedSpec) ||
+              values.some(v => selectedSpec.includes(v))) &&
+            (docSpecialty.includes(key) ||
+              values.some(v => docSpecialty.includes(v)))
+          ) {
+            return true;
           }
         }
-        
+
         return false;
       });
     }
@@ -355,38 +573,46 @@ const DoctorListScreen = () => {
       filtered = filtered.filter(
         doctor =>
           (doctor.name || '').toLowerCase().includes(query) ||
-          ((doctor.specialty || '').toLowerCase().includes(query)),
+          (doctor.specialty || '').toLowerCase().includes(query),
       );
     }
-    
+
     // Apply filter for consultation fee
     filtered = filtered.filter(doctor => {
       const fee = parseInt(doctor.consultation_fee) || 500;
       return fee <= maxFee;
     });
-    
+
     // Apply filter for distance
     if (userLocation) {
       filtered = filtered.filter(doctor => {
-        if (!doctor.distance) return true; // Include if distance unknown
+        if (!doctor.distance && doctor.distance !== 0) return true; // Include if distance unknown
         return doctor.distance <= maxDistance;
       });
     }
-    
+
     // Apply filter for experience
     filtered = filtered.filter(doctor => {
       const experience = parseInt(doctor.experience) || 0;
       return experience >= minExperience;
     });
 
-    // Apply sorting
-    switch(sortBy) {
+    // Apply sorting - REMOVE THE DUPLICATE SORTING LOGIC
+    console.log('Sorting by:', sortBy, 'Order:', sortOrder);
+    console.log(
+      'Before sorting, sample distances:',
+      filtered.slice(0, 3).map(d => ({
+        name: d.name,
+        distance: d.distance,
+        distanceType: typeof d.distance,
+      })),
+    );
+
+    switch (sortBy) {
       case 'distance':
         filtered.sort((a, b) => {
-          // Convert to number and handle undefined/null values
           const distA = typeof a.distance === 'number' ? a.distance : Infinity;
           const distB = typeof b.distance === 'number' ? b.distance : Infinity;
-          
           return sortOrder === 'ascending' ? distA - distB : distB - distA;
         });
         break;
@@ -408,31 +634,24 @@ const DoctorListScreen = () => {
         filtered.sort((a, b) => {
           const ratingA = parseFloat(a.rating) || 0;
           const ratingB = parseFloat(b.rating) || 0;
-          return sortOrder === 'ascending' ? ratingA - ratingB : ratingB - ratingA;
+          return sortOrder === 'ascending'
+            ? ratingA - ratingB
+            : ratingB - ratingA;
         });
     }
 
-    // Log before sorting
-    console.log('Before sorting, first 3 doctors distances:', 
+    console.log(
+      'After sorting, sample distances:',
       filtered.slice(0, 3).map(d => ({
-        name: d.name, 
+        name: d.name,
         distance: d.distance,
-        distanceType: typeof d.distance
-      }))
+      })),
     );
-    
+
     setFilteredDoctors(filtered);
-    
-    // Log after sorting
-    console.log('After sorting, first 3 doctors distances:', 
-      filtered.slice(0, 3).map(d => ({
-        name: d.name, 
-        distance: d.distance
-      }))
-    );
   };
 
-  const toggleSortBy = (newSortBy) => {
+  const toggleSortBy = newSortBy => {
     if (sortBy === newSortBy) {
       // Toggle order if same sort type
       setSortOrder(sortOrder === 'ascending' ? 'descending' : 'ascending');
@@ -454,29 +673,41 @@ const DoctorListScreen = () => {
     'General Medicine',
   ];
 
-  const renderDistanceText = (item) => {
-    if (!item.distance) return null;
-    
-    // Format distance text with better visibility
+  // 1. Update the renderDistanceText function to always show distance when available
+  const renderDistanceText = item => {
+    console.log(
+      'Rendering distance for:',
+      item.name,
+      'Distance:',
+      item.distance,
+      'Type:',
+      typeof item.distance,
+    );
+
+    // Check if distance exists and is a valid number
+    if (
+      item.distance === null ||
+      item.distance === undefined ||
+      isNaN(item.distance)
+    ) {
+      return null;
+    }
+
     let distanceText;
     if (item.distance < 1) {
-      distanceText = `${(item.distance * 1000).toFixed(0)}m`;
+      distanceText = `${Math.round(item.distance * 1000)}m`;
     } else {
       distanceText = `${item.distance.toFixed(1)}km`;
     }
-    
+
     return (
       <View style={styles.distanceContainer}>
-        <Icon 
-          name="location-outline"
-          size={14} 
-          color="#0CB69B" 
-        />
+        <Icon name="location-outline" size={14} color="#0CB69B" />
         <Text style={styles.distanceText}>{distanceText}</Text>
       </View>
     );
   };
-  
+
   // Filter Modal Component
   const FilterModal = () => {
     // Create temporary state values for the sliders
@@ -485,7 +716,7 @@ const DoctorListScreen = () => {
     const [tempMinExperience, setTempMinExperience] = useState(minExperience);
     const [tempSortBy, setTempSortBy] = useState(sortBy);
     const [tempSortOrder, setTempSortOrder] = useState(sortOrder);
-    
+
     // Reset temporary values when modal opens
     useEffect(() => {
       if (showFilterModal) {
@@ -496,17 +727,19 @@ const DoctorListScreen = () => {
         setTempSortOrder(sortOrder);
       }
     }, [showFilterModal]);
-    
+
     // Temporary toggle sort function
-    const tempToggleSortBy = (newSortBy) => {
+    const tempToggleSortBy = newSortBy => {
       if (tempSortBy === newSortBy) {
-        setTempSortOrder(tempSortOrder === 'ascending' ? 'descending' : 'ascending');
+        setTempSortOrder(
+          tempSortOrder === 'ascending' ? 'descending' : 'ascending',
+        );
       } else {
         setTempSortBy(newSortBy);
         setTempSortOrder('ascending');
       }
     };
-    
+
     // Apply all changes at once
     const handleApplyFilters = () => {
       setMaxFee(tempMaxFee);
@@ -518,10 +751,10 @@ const DoctorListScreen = () => {
       // Trigger filter application with a slight delay
       setTimeout(() => setApplyingFilters(!applyingFilters), 50);
     };
-    
+
     // Handle the temporary remove filter function
-    const tempRemoveFilter = (filterType) => {
-      switch(filterType) {
+    const tempRemoveFilter = filterType => {
+      switch (filterType) {
         case 'fees':
           setTempMaxFee(originalMaxFee);
           break;
@@ -543,8 +776,7 @@ const DoctorListScreen = () => {
         animationType="slide"
         transparent={true}
         visible={showFilterModal}
-        onRequestClose={() => setShowFilterModal(false)}
-      >
+        onRequestClose={() => setShowFilterModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -553,17 +785,19 @@ const DoctorListScreen = () => {
                 <Text style={styles.closeButton}>Close</Text>
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalContent}>
               {/* Fees Filter */}
               <View style={styles.filterSection}>
                 <View style={styles.filterHeaderRow}>
                   <Text style={styles.filterTitle}>Fees under</Text>
                   <TouchableOpacity onPress={() => tempRemoveFilter('fees')}>
-                    <Text style={styles.removeFilterText}>Remove Fees Filter</Text>
+                    <Text style={styles.removeFilterText}>
+                      Remove Fees Filter
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.sliderContainer}>
                   <Slider
                     style={styles.slider}
@@ -579,16 +813,19 @@ const DoctorListScreen = () => {
                   <Text style={styles.sliderValue}>₹{tempMaxFee}</Text>
                 </View>
               </View>
-              
+
               {/* Distance Filter */}
               <View style={styles.filterSection}>
                 <View style={styles.filterHeaderRow}>
                   <Text style={styles.filterTitle}>Distance Under</Text>
-                  <TouchableOpacity onPress={() => tempRemoveFilter('distance')}>
-                    <Text style={styles.removeFilterText}>Remove Distance Filter</Text>
+                  <TouchableOpacity
+                    onPress={() => tempRemoveFilter('distance')}>
+                    <Text style={styles.removeFilterText}>
+                      Remove Distance Filter
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.sliderContainer}>
                   <Slider
                     style={styles.slider}
@@ -604,16 +841,19 @@ const DoctorListScreen = () => {
                   <Text style={styles.sliderValue}>{tempMaxDistance} km</Text>
                 </View>
               </View>
-              
+
               {/* Experience Filter */}
               <View style={styles.filterSection}>
                 <View style={styles.filterHeaderRow}>
                   <Text style={styles.filterTitle}>Experience Over</Text>
-                  <TouchableOpacity onPress={() => tempRemoveFilter('experience')}>
-                    <Text style={styles.removeFilterText}>Remove Experience Filter</Text>
+                  <TouchableOpacity
+                    onPress={() => tempRemoveFilter('experience')}>
+                    <Text style={styles.removeFilterText}>
+                      Remove Experience Filter
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.sliderContainer}>
                   <Slider
                     style={styles.slider}
@@ -626,96 +866,115 @@ const DoctorListScreen = () => {
                     maximumTrackTintColor="#DDDDDD"
                     thumbTintColor="#0CB69B"
                   />
-                  <Text style={styles.sliderValue}>{tempMinExperience} years</Text>
+                  <Text style={styles.sliderValue}>
+                    {tempMinExperience} years
+                  </Text>
                 </View>
               </View>
-              
+
               {/* Sort By Options */}
               <View style={styles.filterSection}>
                 <View style={styles.filterHeaderRow}>
                   <Text style={styles.filterTitle}>Sort By</Text>
                   <TouchableOpacity onPress={() => tempRemoveFilter('sort')}>
-                    <Text style={styles.removeFilterText}>Remove Sort Filter</Text>
+                    <Text style={styles.removeFilterText}>
+                      Remove Sort Filter
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                
+
                 <View style={styles.sortOptionsContainer}>
                   <View style={styles.sortButtonsRow}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[
-                        styles.sortButton, 
-                        tempSortBy === 'fees' && styles.activeSortButton
+                        styles.sortButton,
+                        tempSortBy === 'fees' && styles.activeSortButton,
                       ]}
-                      onPress={() => tempToggleSortBy('fees')}
-                    >
-                      <Text style={[
-                        styles.sortButtonText,
-                        tempSortBy === 'fees' && styles.activeSortButtonText
-                      ]}>Fees</Text>
+                      onPress={() => tempToggleSortBy('fees')}>
+                      <Text
+                        style={[
+                          styles.sortButtonText,
+                          tempSortBy === 'fees' && styles.activeSortButtonText,
+                        ]}>
+                        Fees
+                      </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[
-                        styles.sortButton, 
-                        tempSortBy === 'distance' && styles.activeSortButton
+                        styles.sortButton,
+                        tempSortBy === 'distance' && styles.activeSortButton,
                       ]}
-                      onPress={() => tempToggleSortBy('distance')}
-                    >
-                      <Text style={[
-                        styles.sortButtonText,
-                        tempSortBy === 'distance' && styles.activeSortButtonText
-                      ]}>Distance</Text>
+                      onPress={() => tempToggleSortBy('distance')}>
+                      <Text
+                        style={[
+                          styles.sortButtonText,
+                          tempSortBy === 'distance' &&
+                            styles.activeSortButtonText,
+                        ]}>
+                        Distance
+                      </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[
-                        styles.sortButton, 
-                        tempSortBy === 'experience' && styles.activeSortButton
+                        styles.sortButton,
+                        tempSortBy === 'experience' && styles.activeSortButton,
                       ]}
-                      onPress={() => tempToggleSortBy('experience')}
-                    >
-                      <Text style={[
-                        styles.sortButtonText,
-                        tempSortBy === 'experience' && styles.activeSortButtonText
-                      ]}>Experience</Text>
+                      onPress={() => tempToggleSortBy('experience')}>
+                      <Text
+                        style={[
+                          styles.sortButtonText,
+                          tempSortBy === 'experience' &&
+                            styles.activeSortButtonText,
+                        ]}>
+                        Experience
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                  
+
                   <View style={styles.sortButtonsRow}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[
-                        styles.sortButton, 
-                        tempSortOrder === 'ascending' && styles.activeSortButton
+                        styles.sortButton,
+                        tempSortOrder === 'ascending' &&
+                          styles.activeSortButton,
                       ]}
-                      onPress={() => setTempSortOrder('ascending')}
-                    >
-                      <Text style={[
-                        styles.sortButtonText,
-                        tempSortOrder === 'ascending' && styles.activeSortButtonText
-                      ]}>Low to High</Text>
+                      onPress={() => setTempSortOrder('ascending')}>
+                      <Text
+                        style={[
+                          styles.sortButtonText,
+                          tempSortOrder === 'ascending' &&
+                            styles.activeSortButtonText,
+                        ]}>
+                        Low to High
+                      </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[
-                        styles.sortButton, 
-                        tempSortOrder === 'descending' && styles.activeSortButton
+                        styles.sortButton,
+                        tempSortOrder === 'descending' &&
+                          styles.activeSortButton,
                       ]}
-                      onPress={() => setTempSortOrder('descending')}
-                    >
-                      <Text style={[
-                        styles.sortButtonText,
-                        tempSortOrder === 'descending' && styles.activeSortButtonText
-                      ]}>High to Low</Text>
+                      onPress={() => setTempSortOrder('descending')}>
+                      <Text
+                        style={[
+                          styles.sortButtonText,
+                          tempSortOrder === 'descending' &&
+                            styles.activeSortButtonText,
+                        ]}>
+                        High to Low
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               </View>
             </ScrollView>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.applyButton}
-              onPress={handleApplyFilters}
-            >
+              onPress={handleApplyFilters}>
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
@@ -726,11 +985,13 @@ const DoctorListScreen = () => {
 
   // Add this function to check for active filters
   const hasActiveFilters = () => {
-    return maxFee < originalMaxFee || 
-           maxDistance < originalMaxDistance || 
-           minExperience > 0 ||
-           sortBy !== 'distance' ||
-           sortOrder !== 'ascending';
+    return (
+      maxFee < originalMaxFee ||
+      maxDistance < originalMaxDistance ||
+      minExperience > 0 ||
+      sortBy !== 'distance' ||
+      sortOrder !== 'ascending'
+    );
   };
 
   return (
@@ -742,8 +1003,8 @@ const DoctorListScreen = () => {
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find Doctors</Text>
-        <TouchableOpacity 
-          onPress={fetchDoctors} 
+        <TouchableOpacity
+          onPress={() => fetchDoctors(true)} // Pass true to force location check
           style={styles.refreshButton}>
           <Icon name="refresh" size={22} color="#fff" />
         </TouchableOpacity>
@@ -758,18 +1019,23 @@ const DoctorListScreen = () => {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchActionButton}>
+          <TouchableOpacity
+            onPress={() => setSearchQuery('')}
+            style={styles.searchActionButton}>
             <Icon name="close-circle" size={20} color="#666" />
           </TouchableOpacity>
         ) : null}
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={() => setShowFilterModal(true)}
-          style={[styles.filterButton, hasActiveFilters() && styles.activeFilterButton]}>
-          <Icon 
-            name="options-outline" 
-            size={20} 
-            color={hasActiveFilters() ? "#fff" : "#0CB69B"} 
+          style={[
+            styles.filterButton,
+            hasActiveFilters() && styles.activeFilterButton,
+          ]}>
+          <Icon
+            name="options-outline"
+            size={20}
+            color={hasActiveFilters() ? '#fff' : '#0CB69B'}
           />
         </TouchableOpacity>
       </View>
@@ -789,7 +1055,8 @@ const DoctorListScreen = () => {
               <Text
                 style={[
                   styles.specialtyChipText,
-                  selectedSpecialty === item && styles.selectedSpecialtyChipText,
+                  selectedSpecialty === item &&
+                    styles.selectedSpecialtyChipText,
                 ]}>
                 {item}
               </Text>
@@ -811,7 +1078,7 @@ const DoctorListScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-        
+
         {maxDistance < originalMaxDistance && (
           <View style={styles.activeFilterChip}>
             <Text style={styles.activeFilterText}>Within {maxDistance}km</Text>
@@ -820,16 +1087,18 @@ const DoctorListScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-        
+
         {minExperience > 0 && (
           <View style={styles.activeFilterChip}>
-            <Text style={styles.activeFilterText}>{minExperience}+ years exp</Text>
+            <Text style={styles.activeFilterText}>
+              {minExperience}+ years exp
+            </Text>
             <TouchableOpacity onPress={() => removeFilter('experience')}>
               <Icon name="close-circle" size={16} color="#0CB69B" />
             </TouchableOpacity>
           </View>
         )}
-        
+
         {(sortBy !== 'distance' || sortOrder !== 'ascending') && (
           <View style={styles.activeFilterChip}>
             <Text style={styles.activeFilterText}>
@@ -859,9 +1128,7 @@ const DoctorListScreen = () => {
         <View style={styles.emptyContainer}>
           <Icon name="alert-circle" size={60} color="#ff6b6b" />
           <Text style={styles.emptyText}>{error}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={fetchDoctors}>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchDoctors}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -871,17 +1138,21 @@ const DoctorListScreen = () => {
           renderItem={({item}) => (
             <TouchableOpacity
               style={styles.doctorCard}
-              onPress={() => navigation.navigate('DoctorDetail', {doctorId: item.id})}>
+              onPress={() =>
+                navigation.navigate('DoctorDetail', {doctorId: item.id})
+              }>
               <View style={styles.cardContent}>
                 <View style={styles.doctorAvatar}>
                   {item.avatar_url ? (
-                    <Image 
-                      source={{uri: item.avatar_url}} 
+                    <Image
+                      source={{uri: item.avatar_url}}
                       style={styles.avatarImage}
-                      defaultSource={require('../../assets/images/Doctor_icon.png')} 
+                      defaultSource={require('../../assets/images/Doctor_icon.png')}
                     />
                   ) : (
-                    <Text style={styles.avatarText}>{item.name ? item.name.charAt(0) : '?'}</Text>
+                    <Text style={styles.avatarText}>
+                      {item.name ? item.name.charAt(0) : '?'}
+                    </Text>
                   )}
                 </View>
 
@@ -890,15 +1161,17 @@ const DoctorListScreen = () => {
                     <Text style={styles.doctorName}>Dr. {item.name}</Text>
                     <View style={styles.ratingContainer}>
                       <Icon name="star" size={14} color="#FFD700" />
-                      <Text style={styles.ratingText}>{item.rating || '4.5'}</Text>
+                      <Text style={styles.ratingText}>
+                        {item.rating || '4.5'}
+                      </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.specialtyRow}>
                     <Text style={styles.specialtyText}>{item.specialty}</Text>
                     {renderDistanceText(item)}
                   </View>
-                  
+
                   <Text style={styles.experienceText}>
                     {item.experience || '5'}+ years experience
                   </Text>
@@ -932,9 +1205,12 @@ const DoctorListScreen = () => {
               <Text style={styles.emptySubText}>
                 Try adjusting your search or filters
               </Text>
-              
-              {(selectedSpecialty || maxFee < originalMaxFee || maxDistance < originalMaxDistance || minExperience > 0) && (
-                <TouchableOpacity 
+
+              {(selectedSpecialty ||
+                maxFee < originalMaxFee ||
+                maxDistance < originalMaxDistance ||
+                minExperience > 0) && (
+                <TouchableOpacity
                   style={styles.clearFilterButton}
                   onPress={() => {
                     setSelectedSpecialty(null);
@@ -948,7 +1224,7 @@ const DoctorListScreen = () => {
           }
         />
       )}
-      
+
       <FilterModal />
     </SafeAreaView>
   );
@@ -1014,7 +1290,7 @@ const styles = StyleSheet.create({
   refreshButton: {
     padding: 5,
   },
-  
+
   // Filter modal styles
   modalOverlay: {
     flex: 1,
@@ -1122,7 +1398,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
+
   // Active filters display
   activeFiltersContainer: {
     flexDirection: 'row',
@@ -1145,7 +1421,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginRight: 5,
   },
-  
+
   specialtyContainer: {
     marginBottom: 10,
     paddingHorizontal: 10,
@@ -1290,7 +1566,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#0CB69B',
-    paddingVertical: 10, 
+    paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 20,
     marginTop: 20,

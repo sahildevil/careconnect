@@ -724,7 +724,7 @@ const DoctorOnboardingScreen = () => {
           )}
 
           <CustomButton
-            title={currentStep < 4 ? 'Next' : 'Complete Setup'}
+            title={currentStep < 4 ? 'Next' : 'Complete'}
             onPress={handleNextStep}
             style={styles.nextButton}
             loading={loading}
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(12, 182, 155, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   stepTitle: {
     fontSize: 22,
@@ -791,7 +791,7 @@ const styles = StyleSheet.create({
   stepDescription: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 10,
     textAlign: 'center',
   },
   feeContainer: {
