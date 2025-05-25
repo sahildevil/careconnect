@@ -709,279 +709,375 @@ const DoctorListScreen = () => {
   };
 
   // Filter Modal Component
-  const FilterModal = () => {
-    // Create temporary state values for the sliders
-    const [tempMaxFee, setTempMaxFee] = useState(maxFee);
-    const [tempMaxDistance, setTempMaxDistance] = useState(maxDistance);
-    const [tempMinExperience, setTempMinExperience] = useState(minExperience);
-    const [tempSortBy, setTempSortBy] = useState(sortBy);
-    const [tempSortOrder, setTempSortOrder] = useState(sortOrder);
+  // Updated Filter Modal UI without changing logic
+const FilterModal = () => {
+  // Create temporary state values for the sliders
+  const [tempMaxFee, setTempMaxFee] = useState(maxFee);
+  const [tempMaxDistance, setTempMaxDistance] = useState(maxDistance);
+  const [tempMinExperience, setTempMinExperience] = useState(minExperience);
+  const [tempSortBy, setTempSortBy] = useState(sortBy);
+  const [tempSortOrder, setTempSortOrder] = useState(sortOrder);
 
-    // Reset temporary values when modal opens
-    useEffect(() => {
-      if (showFilterModal) {
-        setTempMaxFee(maxFee);
-        setTempMaxDistance(maxDistance);
-        setTempMinExperience(minExperience);
-        setTempSortBy(sortBy);
-        setTempSortOrder(sortOrder);
-      }
-    }, [showFilterModal]);
+  // Reset temporary values when modal opens
+  useEffect(() => {
+    if (showFilterModal) {
+      setTempMaxFee(maxFee);
+      setTempMaxDistance(maxDistance);
+      setTempMinExperience(minExperience);
+      setTempSortBy(sortBy);
+      setTempSortOrder(sortOrder);
+    }
+  }, [showFilterModal]);
 
-    // Temporary toggle sort function
-    const tempToggleSortBy = newSortBy => {
-      if (tempSortBy === newSortBy) {
-        setTempSortOrder(
-          tempSortOrder === 'ascending' ? 'descending' : 'ascending',
-        );
-      } else {
-        setTempSortBy(newSortBy);
+  // Temporary toggle sort function
+  const tempToggleSortBy = newSortBy => {
+    if (tempSortBy === newSortBy) {
+      setTempSortOrder(
+        tempSortOrder === 'ascending' ? 'descending' : 'ascending',
+      );
+    } else {
+      setTempSortBy(newSortBy);
+      setTempSortOrder('ascending');
+    }
+  };
+
+  // Apply all changes at once
+  const handleApplyFilters = () => {
+    setMaxFee(tempMaxFee);
+    setMaxDistance(tempMaxDistance);
+    setMinExperience(tempMinExperience);
+    setSortBy(tempSortBy);
+    setSortOrder(tempSortOrder);
+    setShowFilterModal(false);
+    // Trigger filter application with a slight delay
+    setTimeout(() => setApplyingFilters(!applyingFilters), 50);
+  };
+
+  // Handle the temporary remove filter function
+  const tempRemoveFilter = filterType => {
+    switch (filterType) {
+      case 'fees':
+        setTempMaxFee(originalMaxFee);
+        break;
+      case 'distance':
+        setTempMaxDistance(originalMaxDistance);
+        break;
+      case 'experience':
+        setTempMinExperience(originalMinExperience);
+        break;
+      case 'sort':
+        setTempSortBy('distance');
         setTempSortOrder('ascending');
-      }
-    };
+        break;
+    }
+  };
 
-    // Apply all changes at once
-    const handleApplyFilters = () => {
-      setMaxFee(tempMaxFee);
-      setMaxDistance(tempMaxDistance);
-      setMinExperience(tempMinExperience);
-      setSortBy(tempSortBy);
-      setSortOrder(tempSortOrder);
-      setShowFilterModal(false);
-      // Trigger filter application with a slight delay
-      setTimeout(() => setApplyingFilters(!applyingFilters), 50);
-    };
-
-    // Handle the temporary remove filter function
-    const tempRemoveFilter = filterType => {
-      switch (filterType) {
-        case 'fees':
-          setTempMaxFee(originalMaxFee);
-          break;
-        case 'distance':
-          setTempMaxDistance(originalMaxDistance);
-          break;
-        case 'experience':
-          setTempMinExperience(originalMinExperience);
-          break;
-        case 'sort':
-          setTempSortBy('distance');
-          setTempSortOrder('ascending');
-          break;
-      }
-    };
-
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showFilterModal}
-        onRequestClose={() => setShowFilterModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.filtersTitle}>Filters</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Text style={styles.closeButton}>Close</Text>
-              </TouchableOpacity>
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showFilterModal}
+      onRequestClose={() => setShowFilterModal(false)}>
+      <View style={modernStyles.modalOverlay}>
+        <View style={modernStyles.modalContainer}>
+          <View style={modernStyles.modalHeader}>
+            <Text style={modernStyles.filtersTitle}>Filter Doctors</Text>
+            <TouchableOpacity style={modernStyles.closeButtonContainer} onPress={() => setShowFilterModal(false)}>
+              <Icon name="close" size={22} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={modernStyles.modalDragHandle} />
+          
+          <ScrollView 
+            style={modernStyles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Fees Filter */}
+            <View style={modernStyles.filterSection}>
+              <View style={modernStyles.filterHeaderRow}>
+                <View style={modernStyles.filterTitleContainer}>
+                  <Icon name="wallet-outline" size={20} color="#0CB69B" style={modernStyles.filterIcon} />
+                  <Text style={modernStyles.filterTitle}>Consultation Fee</Text>
+                </View>
+                <Text style={modernStyles.sliderValue}>₹{tempMaxFee}</Text>
+              </View>
+              
+              <View style={modernStyles.sliderContainer}>
+                <Slider
+                  style={modernStyles.slider}
+                  minimumValue={100}
+                  maximumValue={originalMaxFee}
+                  step={100}
+                  value={tempMaxFee}
+                  onValueChange={setTempMaxFee}
+                  minimumTrackTintColor="#0CB69B"
+                  maximumTrackTintColor="#DDDDDD"
+                  thumbTintColor="#0CB69B"
+                />
+                <View style={modernStyles.rangeLabelsContainer}>
+                  <Text style={modernStyles.rangeMinLabel}>₹100</Text>
+                  <Text style={modernStyles.rangeMaxLabel}>₹{originalMaxFee}</Text>
+                </View>
+              </View>
+              
+              {tempMaxFee < originalMaxFee && (
+                <TouchableOpacity 
+                  style={modernStyles.resetButtonContainer}
+                  onPress={() => tempRemoveFilter('fees')}
+                >
+                  <Icon name="refresh-outline" size={16} color="#FF6B6B" />
+                  <Text style={modernStyles.resetButtonText}>Reset to Max</Text>
+                </TouchableOpacity>
+              )}
             </View>
-
-            <ScrollView style={styles.modalContent}>
-              {/* Fees Filter */}
-              <View style={styles.filterSection}>
-                <View style={styles.filterHeaderRow}>
-                  <Text style={styles.filterTitle}>Fees under</Text>
-                  <TouchableOpacity onPress={() => tempRemoveFilter('fees')}>
-                    <Text style={styles.removeFilterText}>
-                      Remove Fees Filter
-                    </Text>
-                  </TouchableOpacity>
+            
+            <View style={modernStyles.sectionDivider} />
+            
+            {/* Distance Filter */}
+            <View style={modernStyles.filterSection}>
+              <View style={modernStyles.filterHeaderRow}>
+                <View style={modernStyles.filterTitleContainer}>
+                  <Icon name="location-outline" size={20} color="#0CB69B" style={modernStyles.filterIcon} />
+                  <Text style={modernStyles.filterTitle}>Distance</Text>
                 </View>
-
-                <View style={styles.sliderContainer}>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={100}
-                    maximumValue={originalMaxFee}
-                    step={100}
-                    value={tempMaxFee}
-                    onValueChange={setTempMaxFee}
-                    minimumTrackTintColor="#0CB69B"
-                    maximumTrackTintColor="#DDDDDD"
-                    thumbTintColor="#0CB69B"
-                  />
-                  <Text style={styles.sliderValue}>₹{tempMaxFee}</Text>
+                <Text style={modernStyles.sliderValue}>{tempMaxDistance} km</Text>
+              </View>
+              
+              <View style={modernStyles.sliderContainer}>
+                <Slider
+                  style={modernStyles.slider}
+                  minimumValue={1}
+                  maximumValue={originalMaxDistance}
+                  step={1}
+                  value={tempMaxDistance}
+                  onValueChange={setTempMaxDistance}
+                  minimumTrackTintColor="#0CB69B"
+                  maximumTrackTintColor="#DDDDDD"
+                  thumbTintColor="#0CB69B"
+                />
+                <View style={modernStyles.rangeLabelsContainer}>
+                  <Text style={modernStyles.rangeMinLabel}>1 km</Text>
+                  <Text style={modernStyles.rangeMaxLabel}>{originalMaxDistance} km</Text>
                 </View>
               </View>
-
-              {/* Distance Filter */}
-              <View style={styles.filterSection}>
-                <View style={styles.filterHeaderRow}>
-                  <Text style={styles.filterTitle}>Distance Under</Text>
+              
+              {tempMaxDistance < originalMaxDistance && (
+                <TouchableOpacity 
+                  style={modernStyles.resetButtonContainer}
+                  onPress={() => tempRemoveFilter('distance')}
+                >
+                  <Icon name="refresh-outline" size={16} color="#FF6B6B" />
+                  <Text style={modernStyles.resetButtonText}>Reset to Max</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            <View style={modernStyles.sectionDivider} />
+            
+            {/* Experience Filter */}
+            <View style={modernStyles.filterSection}>
+              <View style={modernStyles.filterHeaderRow}>
+                <View style={modernStyles.filterTitleContainer}>
+                  <Icon name="briefcase-outline" size={20} color="#0CB69B" style={modernStyles.filterIcon} />
+                  <Text style={modernStyles.filterTitle}>Experience</Text>
+                </View>
+                <Text style={modernStyles.sliderValue}>{tempMinExperience}+ years</Text>
+              </View>
+              
+              <View style={modernStyles.sliderContainer}>
+                <Slider
+                  style={modernStyles.slider}
+                  minimumValue={0}
+                  maximumValue={20}
+                  step={1}
+                  value={tempMinExperience}
+                  onValueChange={setTempMinExperience}
+                  minimumTrackTintColor="#0CB69B"
+                  maximumTrackTintColor="#DDDDDD"
+                  thumbTintColor="#0CB69B"
+                />
+                <View style={modernStyles.rangeLabelsContainer}>
+                  <Text style={modernStyles.rangeMinLabel}>0 years</Text>
+                  <Text style={modernStyles.rangeMaxLabel}>20+ years</Text>
+                </View>
+              </View>
+              
+              {tempMinExperience > 0 && (
+                <TouchableOpacity 
+                  style={modernStyles.resetButtonContainer}
+                  onPress={() => tempRemoveFilter('experience')}
+                >
+                  <Icon name="refresh-outline" size={16} color="#FF6B6B" />
+                  <Text style={modernStyles.resetButtonText}>Reset to 0</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            <View style={modernStyles.sectionDivider} />
+            
+            {/* Sort By Options */}
+            <View style={modernStyles.filterSection}>
+              <View style={modernStyles.filterHeaderRow}>
+                <View style={modernStyles.filterTitleContainer}>
+                  <Icon name="funnel-outline" size={20} color="#0CB69B" style={modernStyles.filterIcon} />
+                  <Text style={modernStyles.filterTitle}>Sort By</Text>
+                </View>
+              </View>
+              
+              <View style={modernStyles.sortOptionsGrid}>
+                <TouchableOpacity 
+                  style={[
+                    modernStyles.sortOptionButton, 
+                    tempSortBy === 'distance' && modernStyles.activeSortOptionButton
+                  ]}
+                  onPress={() => tempToggleSortBy('distance')}
+                >
+                  <Icon 
+                    name="navigate-outline" 
+                    size={22} 
+                    color={tempSortBy === 'distance' ? "#fff" : "#666"} 
+                  />
+                  <Text style={[
+                    modernStyles.sortOptionText,
+                    tempSortBy === 'distance' && modernStyles.activeSortOptionText
+                  ]}>Distance</Text>
+                  {tempSortBy === 'distance' && (
+                    <Icon 
+                      name={tempSortOrder === 'ascending' ? "arrow-up" : "arrow-down"} 
+                      size={16} 
+                      color="#fff" 
+                      style={modernStyles.sortDirectionIcon}
+                    />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    modernStyles.sortOptionButton, 
+                    tempSortBy === 'fees' && modernStyles.activeSortOptionButton
+                  ]}
+                  onPress={() => tempToggleSortBy('fees')}
+                >
+                  <Icon 
+                    name="cash-outline" 
+                    size={22} 
+                    color={tempSortBy === 'fees' ? "#fff" : "#666"} 
+                  />
+                  <Text style={[
+                    modernStyles.sortOptionText,
+                    tempSortBy === 'fees' && modernStyles.activeSortOptionText
+                  ]}>Fees</Text>
+                  {tempSortBy === 'fees' && (
+                    <Icon 
+                      name={tempSortOrder === 'ascending' ? "arrow-up" : "arrow-down"} 
+                      size={16} 
+                      color="#fff" 
+                      style={modernStyles.sortDirectionIcon}
+                    />
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[
+                    modernStyles.sortOptionButton, 
+                    tempSortBy === 'experience' && modernStyles.activeSortOptionButton
+                  ]}
+                  onPress={() => tempToggleSortBy('experience')}
+                >
+                  <Icon 
+                    name="ribbon-outline" 
+                    size={22} 
+                    color={tempSortBy === 'experience' ? "#fff" : "#666"} 
+                  />
+                  <Text style={[
+                    modernStyles.sortOptionText,
+                    tempSortBy === 'experience' && modernStyles.activeSortOptionText
+                  ]}>Experience</Text>
+                  {tempSortBy === 'experience' && (
+                    <Icon 
+                      name={tempSortOrder === 'ascending' ? "arrow-up" : "arrow-down"} 
+                      size={16} 
+                      color="#fff" 
+                      style={modernStyles.sortDirectionIcon}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+              
+              <View style={modernStyles.sortOrderContainer}>
+                <Text style={modernStyles.sortOrderLabel}>Order:</Text>
+                <View style={modernStyles.sortOrderButtons}>
                   <TouchableOpacity
-                    onPress={() => tempRemoveFilter('distance')}>
-                    <Text style={styles.removeFilterText}>
-                      Remove Distance Filter
+                    style={[
+                      modernStyles.sortOrderButton,
+                      tempSortOrder === 'ascending' && modernStyles.activeSortOrderButton
+                    ]}
+                    onPress={() => setTempSortOrder('ascending')}
+                  >
+                    <Icon 
+                      name="arrow-up" 
+                      size={16} 
+                      color={tempSortOrder === 'ascending' ? "#0CB69B" : "#666"} 
+                    />
+                    <Text style={[
+                      modernStyles.sortOrderText,
+                      tempSortOrder === 'ascending' && modernStyles.activeSortOrderText
+                    ]}>
+                      Low to High
                     </Text>
                   </TouchableOpacity>
-                </View>
-
-                <View style={styles.sliderContainer}>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={1}
-                    maximumValue={originalMaxDistance}
-                    step={1}
-                    value={tempMaxDistance}
-                    onValueChange={setTempMaxDistance}
-                    minimumTrackTintColor="#0CB69B"
-                    maximumTrackTintColor="#DDDDDD"
-                    thumbTintColor="#0CB69B"
-                  />
-                  <Text style={styles.sliderValue}>{tempMaxDistance} km</Text>
-                </View>
-              </View>
-
-              {/* Experience Filter */}
-              <View style={styles.filterSection}>
-                <View style={styles.filterHeaderRow}>
-                  <Text style={styles.filterTitle}>Experience Over</Text>
+                  
                   <TouchableOpacity
-                    onPress={() => tempRemoveFilter('experience')}>
-                    <Text style={styles.removeFilterText}>
-                      Remove Experience Filter
+                    style={[
+                      modernStyles.sortOrderButton,
+                      tempSortOrder === 'descending' && modernStyles.activeSortOrderButton
+                    ]}
+                    onPress={() => setTempSortOrder('descending')}
+                  >
+                    <Icon 
+                      name="arrow-down" 
+                      size={16} 
+                      color={tempSortOrder === 'descending' ? "#0CB69B" : "#666"} 
+                    />
+                    <Text style={[
+                      modernStyles.sortOrderText,
+                      tempSortOrder === 'descending' && modernStyles.activeSortOrderText
+                    ]}>
+                      High to Low
                     </Text>
                   </TouchableOpacity>
                 </View>
-
-                <View style={styles.sliderContainer}>
-                  <Slider
-                    style={styles.slider}
-                    minimumValue={0}
-                    maximumValue={20}
-                    step={1}
-                    value={tempMinExperience}
-                    onValueChange={setTempMinExperience}
-                    minimumTrackTintColor="#0CB69B"
-                    maximumTrackTintColor="#DDDDDD"
-                    thumbTintColor="#0CB69B"
-                  />
-                  <Text style={styles.sliderValue}>
-                    {tempMinExperience} years
-                  </Text>
-                </View>
               </View>
-
-              {/* Sort By Options */}
-              <View style={styles.filterSection}>
-                <View style={styles.filterHeaderRow}>
-                  <Text style={styles.filterTitle}>Sort By</Text>
-                  <TouchableOpacity onPress={() => tempRemoveFilter('sort')}>
-                    <Text style={styles.removeFilterText}>
-                      Remove Sort Filter
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.sortOptionsContainer}>
-                  <View style={styles.sortButtonsRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.sortButton,
-                        tempSortBy === 'fees' && styles.activeSortButton,
-                      ]}
-                      onPress={() => tempToggleSortBy('fees')}>
-                      <Text
-                        style={[
-                          styles.sortButtonText,
-                          tempSortBy === 'fees' && styles.activeSortButtonText,
-                        ]}>
-                        Fees
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.sortButton,
-                        tempSortBy === 'distance' && styles.activeSortButton,
-                      ]}
-                      onPress={() => tempToggleSortBy('distance')}>
-                      <Text
-                        style={[
-                          styles.sortButtonText,
-                          tempSortBy === 'distance' &&
-                            styles.activeSortButtonText,
-                        ]}>
-                        Distance
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.sortButton,
-                        tempSortBy === 'experience' && styles.activeSortButton,
-                      ]}
-                      onPress={() => tempToggleSortBy('experience')}>
-                      <Text
-                        style={[
-                          styles.sortButtonText,
-                          tempSortBy === 'experience' &&
-                            styles.activeSortButtonText,
-                        ]}>
-                        Experience
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.sortButtonsRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.sortButton,
-                        tempSortOrder === 'ascending' &&
-                          styles.activeSortButton,
-                      ]}
-                      onPress={() => setTempSortOrder('ascending')}>
-                      <Text
-                        style={[
-                          styles.sortButtonText,
-                          tempSortOrder === 'ascending' &&
-                            styles.activeSortButtonText,
-                        ]}>
-                        Low to High
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.sortButton,
-                        tempSortOrder === 'descending' &&
-                          styles.activeSortButton,
-                      ]}
-                      onPress={() => setTempSortOrder('descending')}>
-                      <Text
-                        style={[
-                          styles.sortButtonText,
-                          tempSortOrder === 'descending' &&
-                            styles.activeSortButtonText,
-                        ]}>
-                        High to Low
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.applyButton}
-              onPress={handleApplyFilters}>
-              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </View>
+          </ScrollView>
+          
+          <View style={modernStyles.modalFooter}>
+            <TouchableOpacity 
+              style={modernStyles.resetAllButton}
+              onPress={() => {
+                setTempMaxFee(originalMaxFee);
+                setTempMaxDistance(originalMaxDistance);
+                setTempMinExperience(0);
+                setTempSortBy('distance');
+                setTempSortOrder('ascending');
+              }}
+            >
+              <Text style={modernStyles.resetAllText}>Reset All</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={modernStyles.applyButton}
+              onPress={handleApplyFilters}
+            >
+              <Text style={modernStyles.applyButtonText}>Apply</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    );
-  };
+      </View>
+    </Modal>
+  );
+};
 
   // Add this function to check for active filters
   const hasActiveFilters = () => {
@@ -1230,6 +1326,234 @@ const DoctorListScreen = () => {
   );
 };
 
+// Add these styles to your component
+const modernStyles = StyleSheet.create({
+  // Modal container and overlay
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    //paddingBottom: Platform.OS === 'ios' ? 30 : 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  filtersTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButtonContainer: {
+    padding: 6,
+  },
+  modalDragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  modalContent: {
+    paddingHorizontal: 20,
+    maxHeight: '70%',
+  },
+  modalFooter: {
+  flexDirection: 'row',
+  paddingHorizontal: 20,
+  paddingTop: 10,
+  paddingBottom: 0, 
+  borderTopWidth: 1,
+  borderTopColor: '#f0f0f0',
+  //marginBottom: 16, 
+},
+  
+  // Filter sections
+  filterSection: {
+    marginVertical: 8,
+  },
+  filterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  filterTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterIcon: {
+    marginRight: 8,
+  },
+  filterTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 4,
+  },
+  
+  // Sliders
+  sliderContainer: {
+    paddingHorizontal: 5,
+    marginBottom: 5,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderValue: {
+    fontSize: 16,
+    color: '#0CB69B',
+    fontWeight: '600',
+  },
+  rangeLabelsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+  },
+  rangeMinLabel: {
+    fontSize: 12,
+    color: '#999',
+  },
+  rangeMaxLabel: {
+    fontSize: 12,
+    color: '#999',
+  },
+  
+  // Reset buttons
+  resetButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    padding: 5,
+    marginTop: 4,
+  },
+  resetButtonText: {
+    color: '#FF6B6B',
+    fontSize: 13,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  
+  // Sort options
+  sortOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 10,
+    justifyContent: 'space-between',
+  },
+  sortOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    marginBottom: 12,
+    width: '31%',
+    justifyContent: 'center',
+  },
+  activeSortOptionButton: {
+    backgroundColor: '#0CB69B',
+  },
+  sortOptionText: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+    marginLeft: 6,
+    marginRight: 4,
+  },
+  activeSortOptionText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  sortDirectionIcon: {
+    marginLeft: 2,
+  },
+  sortOrderContainer: {
+    marginTop: 10,
+  },
+  sortOrderLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 8,
+  },
+  sortOrderButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sortOrderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    width: '48%',
+    justifyContent: 'center',
+  },
+  activeSortOrderButton: {
+    backgroundColor: '#E6F8F6',
+    borderWidth: 1,
+    borderColor: '#0CB69B',
+  },
+  sortOrderText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+  },
+  activeSortOrderText: {
+    color: '#0CB69B',
+    fontWeight: '500',
+  },
+  
+  // Footer buttons
+  resetAllButton: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#0CB69B',
+    borderRadius: 12,
+  },
+  resetAllText: {
+    color: '#0CB69B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 2,
+    backgroundColor: '#0CB69B',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1299,10 +1623,10 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
-    height: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 0, 
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
